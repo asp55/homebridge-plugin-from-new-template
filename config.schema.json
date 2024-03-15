@@ -1,15 +1,54 @@
 {
-  "pluginAlias": "ExampleHomebridgePlugin",
+  "pluginAlias": "HomebridgeMQTTCeilingFanRemote",
   "pluginType": "platform",
   "singular": true,
   "schema": {
     "type": "object",
     "properties": {
-      "name": {
-        "title": "Name",
-        "type": "string",
-        "required": true,
-        "default": "Example Dynamic Platform"
+      "mqtt": {
+        "type": "object",
+        "title": "MQTT",
+        "properties": {
+          "host": {
+            "title": "Broker",
+            "type": "string",
+            "default": "0.0.0.0",
+            "required": true
+          },
+          "port": {
+            "title": "Port",
+            "type": "string",
+            "default": "1883"
+          },
+          "user": {
+            "title": "Username",
+            "type": "string"
+          },
+          "password": {
+            "title": "Password",
+            "type": "string"
+          }
+        }
+      },
+      "remotes": {
+        "title": "Accessories",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string",
+              "required": true
+            },
+            "remote_id": {
+              "title": "Remote Code",
+              "description": "Nibble 1-40 of remote payload. Use either HEX or Binary representation.<br/>Example: 0010101110101001001111001110001110111101",
+              "type": "string",
+              "required": true
+            }
+          }
+        }
       }
     }
   }
