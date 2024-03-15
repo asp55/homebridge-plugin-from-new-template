@@ -1,7 +1,6 @@
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 
 import { CeilingFanRemotePlatform } from './platform';
-import { after } from 'node:test';
 
 const BrightnessLevels = 8;
 const FanSpeeds = 3;
