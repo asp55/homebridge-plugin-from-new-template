@@ -2,6 +2,7 @@
   "pluginAlias": "HomebridgeMQTTCeilingFanRemote",
   "pluginType": "platform",
   "singular": true,
+  "customUi": true,
   "schema": {
     "type": "object",
     "properties": {
@@ -18,7 +19,8 @@
           "port": {
             "title": "Port",
             "type": "string",
-            "default": "1883"
+            "default": "1883",
+            "required": true
           },
           "user": {
             "title": "Username",
@@ -27,6 +29,23 @@
           "password": {
             "title": "Password",
             "type": "string"
+          }
+        }
+      },
+      "rfbridge": {
+        "type": "object",
+        "title": "RF Bridge",
+        "properties": {
+          "topic": {
+            "title": "Topic",
+            "type":"string",
+            "required": true
+          },
+          "protocol": {
+            "title": "Protocol Index",
+            "type":"string",
+            "required": true,
+            "default": "00"
           }
         }
       },
