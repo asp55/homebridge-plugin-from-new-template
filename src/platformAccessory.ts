@@ -1,6 +1,7 @@
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 
 import { CeilingFanRemotePlatform } from './platform';
+import EventEmitter from 'node:events';
 
 const BrightnessLevels = 8;
 const FanSpeeds = 3;
@@ -38,23 +39,18 @@ interface accessoryUpdateDebouncer {
  * An instance of this class is created for each accessory your platform registers
  * Each accessory may expose multiple services of different service types.
  */
-export class CeilingFanRemote {
+export class CeilingFanRemote extends EventEmitter {
   private name: string;
   private remoteID: string;
   private lightService: Service;
   private fanService: Service;
 
-  /**
-   * These are just used to create a working example
-   * You should implement your own code to track the state of your accessory
-   */
-
 
   private accessoryState:accessoryState = {
     LightOn: false,
-    LightBrightness: 100,
+    LightBrightness: BrightnessLevels,
     FanOn: 0,
-    FanSpeed: 100,
+    FanSpeed: FanSpeeds,
   };
 
   private updateDebouncers:accessoryUpdateDebouncer = {};
@@ -66,6 +62,8 @@ export class CeilingFanRemote {
     private readonly accessory: PlatformAccessory,
   ) {
 
+    super();
+    
     this.platform.log.debug('Constructing ceiling fan remote with context:', this.accessory.context);
     this.name = this.accessory.context.config.name;
     this.remoteID = this.accessory.context.config.remote_id;
@@ -135,19 +133,6 @@ export class CeilingFanRemote {
       this.accessory.context.state = this.accessoryState;
       this.platform.api.updatePlatformAccessories([this.accessory]);
     }
-    
-    /**
-     * Updating characteristics values asynchronously.
-     */
-    // let lightOn = false;
-    // setInterval(() => {
-    //   // EXAMPLE - inverse the trigger
-    //   lightOn = !lightOn;
-
-    //   // push the new value to HomeKit
-    //   this.lightService.updateCharacteristic(this.platform.Characteristic.On, lightOn);
-    //   this.platform.log.debug('Toggling Light:', lightOn);
-    // }, 10000);
 
   }
 
@@ -163,13 +148,22 @@ export class CeilingFanRemote {
         //Update the accessory context
 
         this.accessory.context.state = this.accessoryState;
+
+        
         this.platform.api.updatePlatformAccessories([this.accessory]);
+
+
+        this.emit('update', {remote:this.accessory.context.config.remote_id, parameter:key, value:update[key]});
 
         if(afterUpdate) {
           afterUpdate();
         }
       }, 1000);
     });
+  }
+
+  get config() {
+    return this.accessory.context.config;
   }
 
   async setLightOn(value: CharacteristicValue) {
@@ -183,9 +177,6 @@ export class CeilingFanRemote {
     const isOn = this.accessoryState.LightOn;
 
     //this.platform.log.debug(`${this.name}.getLightOn() -> ${isOn}`);
-
-    // if you need to return an error to show the device as "Not Responding" in the Home app:
-    // throw new this.platform.api.hap.HapStatusError(this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
 
     return isOn;
   }
@@ -217,9 +208,6 @@ export class CeilingFanRemote {
 
     //this.platform.log.debug(`${this.name}.getLightBrightness() -> ${brightness}`);
 
-    // if you need to return an error to show the device as "Not Responding" in the Home app:
-    // throw new this.platform.api.hap.HapStatusError(this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
-
     return brightness;
   }
 
@@ -235,9 +223,6 @@ export class CeilingFanRemote {
     const isOn = this.accessoryState.FanOn;
 
     //this.platform.log.debug(`${this.name}.getFanOn() -> ${isOn}`);
-
-    // if you need to return an error to show the device as "Not Responding" in the Home app:
-    // throw new this.platform.api.hap.HapStatusError(this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
 
     return isOn;
   }
@@ -267,9 +252,6 @@ export class CeilingFanRemote {
     const fanSpeed = this.accessoryState.FanOn ? 100*(this.accessoryState.FanSpeed/FanSpeeds) : 0;
 
     //this.platform.log.debug(`${this.name}.getFanSpeed() -> ${fanSpeed}`);
-
-    // if you need to return an error to show the device as "Not Responding" in the Home app:
-    // throw new this.platform.api.hap.HapStatusError(this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
 
     return fanSpeed;
   }
