@@ -2,6 +2,60 @@ import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, 
 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { CeilingFanRemote } from './platformAccessory';
+import os from 'os';
+
+import mqtt from 'mqtt';
+
+function binaryCommand(remote:string, command: number = -1): string {
+  const room: string = `1${remote.padStart(40, '0')}0`;
+  const rfrawCommand: string = `0${command.toString(2).padStart(10, '0')}1`;
+  const rfrawInverseCommand: string = rfrawCommand.split('').map(i=>Math.abs(parseInt(i)-1)).join('');
+
+  const output: string = `${room}${rfrawCommand}${rfrawInverseCommand}`;
+
+  return output; 
+}
+
+function hexCommand(remote:string, command: number = -1):string {
+  const bin = binaryCommand(remote, command);
+  const nibbles = 8*Math.ceil(bin.length/8);
+  const _bin = bin.padEnd(nibbles, '0');
+
+  let output = '';
+  for(let i=0; i<nibbles; i+=8) {
+    const byte = parseInt(_bin.substring(i, i+8), 2).toString(16).padStart(2, '0');
+    output = `${output}${byte}`; 
+  }
+
+  return `AAA8${((nibbles/8)+1).toString(16).padStart(2, '0')}00${output}55`.toUpperCase();
+}
+
+
+const commands = {
+  LightOn: {
+    true: 138,
+    false: 266
+  },
+  LightBrightness: {
+    1: 10,
+    2: 11,
+    3: 12,
+    4: 13,
+    5: 14,
+    6: 15,
+    7: 72,
+    8: 74
+  },
+  FanOn: {
+    0: 98,
+    1: -1
+  },
+  FanSpeed: {
+    1: 2,
+    2: 32,
+    3: 66
+  }
+};
 
 /**
  * HomebridgePlatform
@@ -14,8 +68,13 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
 
   // this is used to track restored cached accessories
   public readonly accessories: PlatformAccessory[] = [];
-  public readonly remotes: CeilingFanRemote[] = [];
+  public readonly remotes: {[remote_id:string] : CeilingFanRemote} = {};
   public readonly initializedRemotes: string[] = [];
+
+  public readonly remoteCommands = {};
+
+  private mqttClient:mqtt.MqttClient;
+  private rfbridgeResultsTopic:string = '';
 
   constructor(
     public readonly log: Logger,
@@ -23,6 +82,34 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
     public readonly api: API,
   ) {
     this.log.debug('Initializing ceiling fan platform');
+
+
+    const connectUrl = `${this.config.mqtt.protocol}://${this.config.mqtt.host}:${this.config.mqtt.port}`;
+    const connectionParams:mqtt.IClientOptions = {
+      clientId: `${PLATFORM_NAME}_${os.hostname()}`,
+      clean: false,
+      connectTimeout: 4000,
+      reconnectPeriod: 1000,
+    };
+
+    if(this.config.mqtt.user) {
+      connectionParams.username = this.config.mqtt.user;
+    }
+
+    if(this.config.mqtt.password) {
+      connectionParams.password = this.config.mqtt.password;
+    }
+
+    this.rfbridgeResultsTopic = `tele/${this.config.rfbridge.topic}/RESULT`;
+
+    this.mqttClient = mqtt.connect(connectUrl, connectionParams);
+
+    this.mqttClient.on('connect', () => {
+      this.log.debug('MQTT Connected');
+      this.mqttClient.subscribe([this.rfbridgeResultsTopic], () => {
+        this.log.debug(`Subscribed to topic '${this.rfbridgeResultsTopic}'`);
+      });
+    });
 
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
     // Dynamic Platform plugins should only register new accessories after this event was fired,
@@ -48,7 +135,7 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
   }
 
   initialize() {
-    this.log.debug('Discovering Devices');
+    this.log.debug('Initializing.');
 
     if(this.config.remotes && Array.isArray(this.config.remotes)) {
       // loop over the discovered devices and register each one if it has not already been registered
@@ -56,6 +143,7 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
         const uuid = this.api.hap.uuid.generate(remoteConfig.remote_id);
 
         if(this.initializedRemotes.indexOf(uuid)<0) {
+
           this.initializedRemotes.push(uuid);
 
           // see if an accessory with the same uuid has already been registered and restored from
@@ -72,7 +160,8 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
             existingAccessory.context.config = remoteConfig;
             this.api.updatePlatformAccessories([existingAccessory]);
   
-            this.remotes.push(new CeilingFanRemote(this, existingAccessory));
+            //this.remotes.push(new CeilingFanRemote(this, existingAccessory));
+            this.remotes[remoteConfig.remote_id] = new CeilingFanRemote(this, existingAccessory);
           } else {
             // the accessory does not yet exist, so we need to create it
             this.log.info('Adding new accessory:', remoteConfig.name);
@@ -80,7 +169,7 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
             // create a new accessory
             const accessory = new this.api.platformAccessory(remoteConfig.name, uuid);
             accessory.context.config = remoteConfig;
-            this.remotes.push(new CeilingFanRemote(this, accessory));
+            this.remotes[remoteConfig.remote_id] = new CeilingFanRemote(this, accessory);
             this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
           }
         }
@@ -89,10 +178,58 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
         }
       }
 
+
+      this.mqttClient.on('message', (topic, payload) => {
+        if(topic===this.rfbridgeResultsTopic) {
+          //Parse rfraw data;
+          const rfraw = JSON.parse(payload.toString()).RfRaw;
+          if(rfraw && rfraw.Data) {
+            const message = rfraw.Data as string;
+            this.log.debug('Received Message:', topic, message);
+
+            if(message.substring(2, 4)==='A6' && message.substring(6, 8)===this.config.rfbridge.protocol) {
+
+              this.log.debug('Parsing Message:', message);
+              const uartPayload = message.substring(8, message.length-2);
+
+              const bytes = uartPayload.match(/../g);
+              if(bytes) {
+                const binaryString = bytes.map(byte=>{
+                  return parseInt(byte, 16).toString(2).padStart(8, '0');
+                }).join('');
+
+                const parsedBinary = binaryString.match(/^1(.{40})00(.{10})11(.{10})0.*/);
+                if(parsedBinary !== null ) {
+                  // const command = parsedBinary[2];
+                  // const iCommand = parsedBinary[3];
+                  // this.log.debug('  to binary -> ', binaryString, {room, command, iCommand, commandNum: parseInt(command, 2)});
+
+                  const room = parsedBinary[1];
+                  const command = parseInt(parsedBinary[2], 2);
+
+                  if(this.remotes[room]) {
+                    this.remotes[room].update(command);
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
       //Add event listener to remotes for transmitting changes to mqtt
-      this.remotes.forEach(remote=>{
+      Object.values(this.remotes).forEach(remote=>{
         remote.addListener('update', props=>{
           this.log.debug('Update received', props);
+
+
+          const command = commands[props.parameter][props.value];
+          this.log.debug(`Sending command: ${props.parameter} (${props.value})`, command);
+
+          if(command && command > -1) {
+            this.mqttClient.publish(`cmnd/${this.config.rfbridge.topic}/rfraw`, hexCommand(props.remote, command));
+          }
+
         });
       });
 

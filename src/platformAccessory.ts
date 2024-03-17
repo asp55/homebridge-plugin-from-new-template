@@ -25,8 +25,6 @@ interface accessoryStateUpdate {
 type Callback = ()=>unknown;
 type optionalCallback = null | Callback;
 
-
-
 interface accessoryUpdateDebouncer {
   LightOn?:NodeJS.Timeout; 
   LightBrightness?:NodeJS.Timeout;
@@ -54,8 +52,6 @@ export class CeilingFanRemote extends EventEmitter {
   };
 
   private updateDebouncers:accessoryUpdateDebouncer = {};
-
-
 
   constructor(
     private readonly platform: CeilingFanRemotePlatform,
@@ -158,7 +154,7 @@ export class CeilingFanRemote extends EventEmitter {
         if(afterUpdate) {
           afterUpdate();
         }
-      }, 1000);
+      }, 50);
     });
   }
 
@@ -211,7 +207,6 @@ export class CeilingFanRemote extends EventEmitter {
     return brightness;
   }
 
-
   async setFanOn(value: CharacteristicValue) {
     // implement your own code to turn your device on/off
     this.updateState({FanOn: value as FanActive});
@@ -254,6 +249,223 @@ export class CeilingFanRemote extends EventEmitter {
     //this.platform.log.debug(`${this.name}.getFanSpeed() -> ${fanSpeed}`);
 
     return fanSpeed;
+  }
+
+  private get commands() {
+    return [
+      {
+        label:'Fan Off',
+        command:98,
+        update:()=>{
+          this.accessoryState.FanOn = 0;
+        }
+      },
+      {
+        label:'Fan Toggle On/Off',
+        command:35,
+        update:()=>{
+          this.accessoryState.FanOn = this.accessoryState.FanOn===1 ? 0 : 1;
+        }
+      },
+      {
+        label:'Fan Speed 1',
+        command:4,
+        update:()=>{
+          this.accessoryState.FanOn = 1;
+          this.accessoryState.FanSpeed = 1;
+        }
+      },
+      {
+        label:'Fan Speed 2',
+        command:32,
+        update:()=>{
+          this.accessoryState.FanOn = 1;
+          this.accessoryState.FanSpeed = 2;
+        }
+      },
+      {
+        label:'Fan Speed 3',
+        command:64,
+        update:()=>{
+          this.accessoryState.FanOn = 1;
+          this.accessoryState.FanSpeed = 3;
+        }
+      },
+      {
+        label:'fanMin',
+        command:2,
+        update:()=>{
+          this.accessoryState.FanOn = 1;
+          this.accessoryState.FanSpeed = 1;
+        }
+      },
+      {
+        label:'fanMax',
+        command:66,
+        update:()=>{
+          this.accessoryState.FanOn = 1;
+          this.accessoryState.FanSpeed = 3;
+        }
+      },
+      {
+        label:'fanUp',
+        command:513,
+        update:()=>{
+          this.accessoryState.FanOn = 1;
+          this.accessoryState.FanSpeed = Math.min(this.accessoryState.FanSpeed+1, FanSpeeds);
+        }
+      },
+      {
+        label:'fanDown',
+        command:514,
+        update:()=>{
+          this.accessoryState.FanOn = 1;
+          this.accessoryState.FanSpeed = Math.max(this.accessoryState.FanSpeed-1, 1);
+        }
+      },
+      {
+        label:'Light On',
+        command:138,
+        update:()=>{
+          this.accessoryState.LightOn = true;
+        }
+      },
+      {
+        label:'Light Off',
+        command:266,
+        update:()=>{
+          this.accessoryState.LightOn = false;
+        }
+      },
+      {
+        label:'Light Toggle On/Off',
+        command:768,
+        update:()=>{
+          this.accessoryState.LightOn = !this.accessoryState.LightOn;
+        }
+      },
+      {
+        label:'Light 12.5% aka level 1',
+        command:10,
+        update:()=>{
+          this.accessoryState.LightOn = true;
+          this.accessoryState.LightBrightness = 1;
+        }
+      },
+      {
+        label:'Light 25.0% aka level 2',
+        command:11,
+        update:()=>{
+          this.accessoryState.LightOn = true;
+          this.accessoryState.LightBrightness = 2;
+        }
+      },
+      {
+        label:'Light 37.5% aka level 3',
+        command:12,
+        update:()=>{
+          this.accessoryState.LightOn = true;
+          this.accessoryState.LightBrightness = 3;
+        }
+      },
+      {
+        label:'Light 50.0% aka level 4',
+        command:13,
+        update:()=>{
+          this.accessoryState.LightOn = true;
+          this.accessoryState.LightBrightness = 4;
+        }
+      },
+      {
+        label:'Light 62.5% aka level 5',
+        command:14,
+        update:()=>{
+          this.accessoryState.LightOn = true;
+          this.accessoryState.LightBrightness = 5;
+        }
+      },
+      {
+        label:'Light 75.0% aka level 6',
+        command:15,
+        update:()=>{
+          this.accessoryState.LightOn = true;
+          this.accessoryState.LightBrightness = 6;
+        }
+      },
+      {
+        label:'Light 87.5% aka level 7',
+        command:72,
+        update:()=>{
+          this.accessoryState.LightOn = true;
+          this.accessoryState.LightBrightness = 7;
+        }
+      },
+      {
+        label:'Light 100.0% aka level 8',
+        command:73,
+        update:()=>{
+          this.accessoryState.LightOn = true;
+          this.accessoryState.LightBrightness = 8;
+        }
+      },
+      {
+        label:'lightMin',
+        command:9,
+        update:()=>{
+          this.accessoryState.LightOn = true;
+          this.accessoryState.LightBrightness = 1;
+        }
+      },
+      {
+        label:'lightMax',
+        command:74,
+        update:()=>{
+          this.accessoryState.LightOn = true;
+          this.accessoryState.LightBrightness = BrightnessLevels;
+        }
+      },
+      {
+        label:'lightUp',
+        command:137,
+        update:()=>{
+          this.accessoryState.LightOn = true;
+          this.accessoryState.LightBrightness = Math.min(this.accessoryState.LightBrightness+1, BrightnessLevels);
+        }
+      },
+      {
+        label:'lightDown',
+        command:265,
+        update:()=>{
+          this.accessoryState.LightOn = true;
+          this.accessoryState.LightBrightness = Math.max(this.accessoryState.LightBrightness-1, 1);
+        }
+      },
+      {
+        label:'toggleDimming',
+        command:5,
+        update: ()=>{}
+      },
+      {
+        label:'pair',
+        command:65,
+        update: ()=>{}
+      },
+    ];
+  }
+
+  public update(command:number): void {
+    const _command = this.commands.find(c=>c.command===command);
+    if(_command) {
+      this.platform.log.debug(_command.label);
+
+      _command.update();
+
+      this.lightService.updateCharacteristic(this.platform.Characteristic.On, this.accessoryState.LightOn);
+      this.lightService.updateCharacteristic(this.platform.Characteristic.Brightness, 100*this.accessoryState.LightBrightness/BrightnessLevels);
+
+      this.fanService.updateCharacteristic(this.platform.Characteristic.Active, this.accessoryState.FanOn);
+      this.fanService.updateCharacteristic(this.platform.Characteristic.RotationSpeed, 100*this.accessoryState.FanSpeed/FanSpeeds);
+    }
   }
   
 
