@@ -10,6 +10,22 @@
         "type": "object",
         "title": "MQTT",
         "properties": {
+          "protocol": {
+            "title": "Protocol",
+            "type": "string",
+            "oneOf": [
+              { "title": "mqtt", "enum": ["mqtt"] },
+              { "title": "mqtts", "enum": ["mqtts"] },
+              { "title": "tcp", "enum": ["tcp"] },
+              { "title": "tls", "enum": ["tls"] },
+              { "title": "ws", "enum": ["ws"] },
+              { "title": "wss", "enum": ["wss"] },
+              { "title": "wxs", "enum": ["wxs"] },
+              { "title": "alis", "enum": ["alis"] }
+            ],
+            "default": "mqtt",
+            "required": true
+          },
           "host": {
             "title": "Broker",
             "type": "string",
