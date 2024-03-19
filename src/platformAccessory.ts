@@ -60,7 +60,7 @@ export class CeilingFanRemote extends EventEmitter {
 
     super();
     
-    this.platform.log.info('Constructing ceiling fan remote with context:', this.accessory.context);
+    this.platform.log.debug('Constructing ceiling fan remote with context:', this.accessory.context);
     this.name = this.accessory.context.config.name;
     this.remoteID = this.accessory.context.config.remote_id;
 
@@ -166,13 +166,13 @@ export class CeilingFanRemote extends EventEmitter {
     // implement your own code to turn your device on/off
     this.updateState({LightOn: value as boolean});
 
-    this.platform.log.info(`${this.name}.setLightOn(${value})`);
+    this.platform.log.debug(`${this.name}.setLightOn(${value})`);
   }
 
   async getLightOn(): Promise<CharacteristicValue> {
     const isOn = this.accessoryState.LightOn;
 
-    //this.platform.log.info(`${this.name}.getLightOn() -> ${isOn}`);
+    //this.platform.log.debug(`${this.name}.getLightOn() -> ${isOn}`);
 
     return isOn;
   }
@@ -181,7 +181,7 @@ export class CeilingFanRemote extends EventEmitter {
     const newBrightness = Math.round((value as number)/100 * BrightnessLevels);
     const snapValue = Math.round(100*(newBrightness/BrightnessLevels));
 
-    this.platform.log.info(`${this.name}.setLightBrightness(${value}) -> ${newBrightness}`);
+    this.platform.log.debug(`${this.name}.setLightBrightness(${value}) -> ${newBrightness}`);
 
     if(newBrightness!==0) {
       //If the new brightness is 0, we're not going to actually save it to the state. So that if the light is just turned on we can return to the last brightness that was set.
@@ -190,7 +190,7 @@ export class CeilingFanRemote extends EventEmitter {
         {LightBrightness: newBrightness},
         ()=>{
           //After debounce snap the value
-          this.platform.log.info(`${this.name}.snapLightBrightness(${value}) -> ${snapValue}%`);
+          this.platform.log.debug(`${this.name}.snapLightBrightness(${value}) -> ${snapValue}%`);
           this.lightService.updateCharacteristic(this.platform.Characteristic.Brightness, snapValue);
         }
       );
@@ -202,7 +202,7 @@ export class CeilingFanRemote extends EventEmitter {
   async getLightBrightness(): Promise<CharacteristicValue> {
     const brightness = this.accessoryState.LightOn ? 100*(this.accessoryState.LightBrightness/BrightnessLevels) : 0;
 
-    //this.platform.log.info(`${this.name}.getLightBrightness() -> ${brightness}`);
+    //this.platform.log.debug(`${this.name}.getLightBrightness() -> ${brightness}`);
 
     return brightness;
   }
@@ -211,13 +211,13 @@ export class CeilingFanRemote extends EventEmitter {
     // implement your own code to turn your device on/off
     this.updateState({FanOn: value as FanActive});
 
-    this.platform.log.info(`${this.name}.setFanOn(${value})`);
+    this.platform.log.debug(`${this.name}.setFanOn(${value})`);
   }
 
   async getFanOn(): Promise<CharacteristicValue> {
     const isOn = this.accessoryState.FanOn;
 
-    //this.platform.log.info(`${this.name}.getFanOn() -> ${isOn}`);
+    //this.platform.log.debug(`${this.name}.getFanOn() -> ${isOn}`);
 
     return isOn;
   }
@@ -225,7 +225,7 @@ export class CeilingFanRemote extends EventEmitter {
   async setFanSpeed(value: CharacteristicValue) {
     const newSpeed = Math.round((value as number)/100 * FanSpeeds);
     const snapValue = Math.round(100*(newSpeed/FanSpeeds));
-    this.platform.log.info(`${this.name}.setFanSpeed(${value}) -> ${newSpeed} || ${snapValue}%`);
+    this.platform.log.debug(`${this.name}.setFanSpeed(${value}) -> ${newSpeed} || ${snapValue}%`);
 
     if(newSpeed!==0) {
       //If the new speed is 0, we're not going to actually save it to the state. 
@@ -235,7 +235,7 @@ export class CeilingFanRemote extends EventEmitter {
         {FanSpeed: newSpeed},
         ()=>{
           //After debounce snap the value
-          this.platform.log.info(`${this.name}.snapFanSpeed(${value}) -> ${snapValue}%`);
+          this.platform.log.debug(`${this.name}.snapFanSpeed(${value}) -> ${snapValue}%`);
           this.fanService.updateCharacteristic(this.platform.Characteristic.RotationSpeed, snapValue);
         }
       );
@@ -246,7 +246,7 @@ export class CeilingFanRemote extends EventEmitter {
   async getFanSpeed(): Promise<CharacteristicValue> {
     const fanSpeed = this.accessoryState.FanOn ? 100*(this.accessoryState.FanSpeed/FanSpeeds) : 0;
 
-    //this.platform.log.info(`${this.name}.getFanSpeed() -> ${fanSpeed}`);
+    //this.platform.log.debug(`${this.name}.getFanSpeed() -> ${fanSpeed}`);
 
     return fanSpeed;
   }
@@ -456,7 +456,7 @@ export class CeilingFanRemote extends EventEmitter {
   public update(command:number): void {
     const _command = this.commands.find(c=>c.command===command);
     if(_command) {
-      this.platform.log.info(_command.label);
+      this.platform.log.debug(_command.label);
 
       _command.update();
 

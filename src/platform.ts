@@ -81,7 +81,7 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
     public readonly config: PlatformConfig,
     public readonly api: API,
   ) {
-    this.log.info('Initializing ceiling fan platform');
+    this.log.debug('Initializing ceiling fan platform');
 
 
     const connectUrl = `${this.config.mqtt.protocol}://${this.config.mqtt.host}:${this.config.mqtt.port}`;
@@ -105,9 +105,9 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
     this.mqttClient = mqtt.connect(connectUrl, connectionParams);
 
     this.mqttClient.on('connect', () => {
-      this.log.info('MQTT Connected');
+      this.log.debug('MQTT Connected');
       this.mqttClient.subscribe([this.rfbridgeResultsTopic], () => {
-        this.log.info(`Subscribed to topic '${this.rfbridgeResultsTopic}'`);
+        this.log.debug(`Subscribed to topic '${this.rfbridgeResultsTopic}'`);
       });
     });
 
@@ -116,10 +116,10 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
     // in order to ensure they weren't added to homebridge already. This event can also be used
     // to start discovery of new accessories.
     this.api.on('didFinishLaunching', () => {
-      this.log.info('Executed didFinishLaunching callback');
+      this.log.debug('Executed didFinishLaunching callback');
       // run the method to discover / register your devices as accessories
       this.initialize();
-      this.log.info('Finished initializing ceiling fan platform');
+      this.log.debug('Finished initializing ceiling fan platform');
     });
   }
 
@@ -135,7 +135,7 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
   }
 
   initialize() {
-    this.log.info('Initializing.');
+    this.log.debug('Initializing.');
 
     if(this.config.remotes && Array.isArray(this.config.remotes)) {
       // loop over the discovered devices and register each one if it has not already been registered
@@ -185,11 +185,11 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
           const rfraw = JSON.parse(payload.toString()).RfRaw;
           if(rfraw && rfraw.Data) {
             const message = rfraw.Data as string;
-            this.log.info('Received Message:', topic, message);
+            this.log.debug('Received Message:', topic, message);
 
             if(message.substring(2, 4)==='A6' && message.substring(6, 8)===this.config.rfbridge.protocol) {
 
-              this.log.info('Parsing Message:', message);
+              this.log.debug('Parsing Message:', message);
               const uartPayload = message.substring(8, message.length-2);
 
               const bytes = uartPayload.match(/../g);
@@ -202,7 +202,7 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
                 if(parsedBinary !== null ) {
                   // const command = parsedBinary[2];
                   // const iCommand = parsedBinary[3];
-                  // this.log.info('  to binary -> ', binaryString, {room, command, iCommand, commandNum: parseInt(command, 2)});
+                  // this.log.debug('  to binary -> ', binaryString, {room, command, iCommand, commandNum: parseInt(command, 2)});
 
                   const room = parsedBinary[1];
                   const command = parseInt(parsedBinary[2], 2);
@@ -220,11 +220,11 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
       //Add event listener to remotes for transmitting changes to mqtt
       Object.values(this.remotes).forEach(remote=>{
         remote.addListener('update', props=>{
-          this.log.info('Update received', props);
+          this.log.debug('Update received', props);
 
 
           const command = commands[props.parameter][props.value];
-          this.log.info(`Sending command: ${props.parameter} (${props.value})`, command);
+          this.log.debug(`Sending command: ${props.parameter} (${props.value})`, command);
 
           if(command && command > -1) {
             this.mqttClient.publish(`cmnd/${this.config.rfbridge.topic}/rfraw`, hexCommand(props.remote, command));
