@@ -135,6 +135,7 @@ export class CeilingFanRemote extends EventEmitter {
   private updateState(update:accessoryStateUpdate, afterUpdate:optionalCallback = null) {
     Object.keys(update).forEach(key=>{
       this.accessoryState[key] = update[key];
+      this.emit('update', {remote:this.accessory.context.config.remote_id, parameter:key, value:update[key]});
 
       if(this.updateDebouncers[key]) {
         clearTimeout(this.updateDebouncers[key]);
@@ -148,8 +149,6 @@ export class CeilingFanRemote extends EventEmitter {
         
         this.platform.api.updatePlatformAccessories([this.accessory]);
 
-
-        this.emit('update', {remote:this.accessory.context.config.remote_id, parameter:key, value:update[key]});
 
         if(afterUpdate) {
           afterUpdate();
