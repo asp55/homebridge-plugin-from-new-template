@@ -109,6 +109,9 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
       this.mqttClient.subscribe([this.rfbridgeResultsTopic], () => {
         this.log.debug(`Subscribed to topic '${this.rfbridgeResultsTopic}'`);
       });
+
+      //Make sure that code sniffing is on
+      this.mqttClient.publish(`cmnd/${this.config.rfbridge.topic}/rfraw`, 'AAA655');
     });
 
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
