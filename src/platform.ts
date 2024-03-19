@@ -75,6 +75,7 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
 
   private mqttClient:mqtt.MqttClient;
   private rfbridgeResultsTopic:string = '';
+  private rfbridgeBootTopic:string = '';
 
   constructor(
     public readonly log: Logger,
@@ -101,6 +102,7 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
     }
 
     this.rfbridgeResultsTopic = `tele/${this.config.rfbridge.topic}/RESULT`;
+    this.rfbridgeBootTopic = `tele/${this.config.rfbridge.topic}/INFO3`;
 
     this.mqttClient = mqtt.connect(connectUrl, connectionParams);
 
@@ -222,6 +224,10 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
               }
             }
           }
+        }
+        else if(topic===this.rfbridgeBootTopic) {
+          //Make sure that code sniffing is on
+          this.mqttClient.publish(`cmnd/${this.config.rfbridge.topic}/rfraw`, 'AAA655');
         }
       });
 
