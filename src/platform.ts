@@ -104,7 +104,7 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
 
     this.mqttClient = mqtt.connect(connectUrl, connectionParams);
 
-    this.mqttClient.on('connect', () => {
+    const connectCallback = () => {
       this.log.debug('MQTT Connected');
       this.mqttClient.subscribe([this.rfbridgeResultsTopic], () => {
         this.log.debug(`Subscribed to topic '${this.rfbridgeResultsTopic}'`);
@@ -112,7 +112,12 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
 
       //Make sure that code sniffing is on
       this.mqttClient.publish(`cmnd/${this.config.rfbridge.topic}/rfraw`, 'AAA655');
-    });
+    };
+
+    this.mqttClient.on('connect', connectCallback);
+
+    this.mqttClient.on('reconnect', connectCallback);
+
 
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
     // Dynamic Platform plugins should only register new accessories after this event was fired,
