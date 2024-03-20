@@ -78,7 +78,7 @@
             },
             "remote_id": {
               "title": "Remote Code",
-              "description": "Nibble 1-40 of remote payload. Use either HEX or Binary representation.<br/>Example: 0010101110101001001111001110001110111101",
+              "description": "Binary string of nibble 1-40 of remote payload. <br/>Example: 0010101110101001001111001110001110111101",
               "type": "string",
               "required": true
             },
