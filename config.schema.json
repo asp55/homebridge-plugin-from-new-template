@@ -81,7 +81,14 @@
               "description": "Nibble 1-40 of remote payload. Use either HEX or Binary representation.<br/>Example: 0010101110101001001111001110001110111101",
               "type": "string",
               "required": true
+            },
+            "_id": {
+              "type": "string",
+              "condition": {
+                "functionBody": "return false"
+              }
             }
+
           }
         }
       }
