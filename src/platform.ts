@@ -108,7 +108,7 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
 
     const connectCallback = () => {
       this.log.debug('MQTT Connected');
-      this.mqttClient.subscribe([this.rfbridgeResultsTopic], () => {
+      this.mqttClient.subscribe([this.rfbridgeResultsTopic, this.rfbridgeBootTopic], () => {
         this.log.debug(`Subscribed to topic '${this.rfbridgeResultsTopic}'`);
       });
 
