@@ -76,7 +76,13 @@ function App() {
             homebridge.toast.warn('Sniffing timed out');
           }
           else if(response.result==='error') {
-            homebridge.toast.error(JSON.stringify(response.data), 'Sniffing Error');
+            if(response.data.code==='ECONNREFUSED') {
+              homebridge.toast.error('Please verify your MQTT settings.', 'Connection Refused');
+
+            }
+            else {
+              homebridge.toast.error(JSON.stringify(response.data), 'Unknown Error');
+            }
           }
 
         }
