@@ -32,28 +32,28 @@
   getPluginConfig: async () => {
     return [
       {
-        // "mqtt": {
-        //   "host": "homebridge.local",
-        //   "port": "1883",
-        //   "user": "mqtt_user",
-        //   "password": "tracking",
-        //   "protocol": "mqtt"
-        // },
-        // "rfbridge": {
-        //   "topic": "tasmota_EF54CC",
-        //   "protocol": "00"
-        // },
-        // "remotes": [{
-        //     "name": "Bedroom-Ceiling-TEST",
-        //     "remote_id": "0010101110101001001111001110001110111101",
-        //     "_id": 1710487022139
-        //   },
-        //   {
-        //     "name": "Office-Ceiling-TEST",
-        //     "remote_id": "0100000111101011010010110100010100110101",
-        //     "_id": 1710487022140
-        //   }
-        // ],
+        "mqtt": {
+          "host": "homebridge.local",
+          "port": "1883",
+          "user": "mqtt_user",
+          "password": "tracking",
+          "protocol": "mqtt"
+        },
+        "rfbridge": {
+          "topic": "tasmota_EF54CC",
+          "protocol": "00"
+        },
+        "remotes": [{
+            "name": "Bedroom-Ceiling-TEST",
+            "remote_id": "0010101110101001001111001110001110111101",
+            "_id": 1710487022139
+          },
+          {
+            "name": "Office-Ceiling-TEST",
+            "remote_id": "0100000111101011010010110100010100110101",
+            "_id": 1710487022140
+          }
+        ],
         "platform": "HomebridgeMQTTCeilingFanRemote"
       }
     ]
@@ -229,7 +229,24 @@
       },
       "displayName": "MQTT Ceiling Fan Remote"
     }
-  }
+  },
+  toast: {
+    success: (message, title='')=>{
+      console.log('Toast Success Message', message, title);
+    },
+    error: (message, title='')=>{
+      console.log('Toast Error Message', message, title);
+    },
+    warning: (message, title='')=>{
+      console.log('Toast Warning Message', message, title);
+    },
+    info: (message, title='')=>{
+      console.log('Toast Info Message', message, title);
+    },
+  },
+  request: async (path, body='')=>new Promise((resolve)=>{
+    setTimeout(()=>resolve({result: "success", data: "0010101110101001001111001110001110111101"}), 1500)
+  })
 }
     </script>
     <link href="http://localhost:8581/styles.3422f0a086a2d157.css" rel="stylesheet">

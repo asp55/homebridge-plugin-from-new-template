@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
+import RemoteIDField from "./components/RemoteIDField/RemoteIDField";
 
 const homebridge = window.homebridge;
 
 function App() {
   const [pluginConfig, setPluginConfig] = useState({});
   const [initialized, setInitialized] = useState(false);
+  const [sniffing, setSniffing] = useState(-1);
+  const [waitingForSniff, setWaitingForSniff] = useState(false);
 
   useEffect(()=>{
     if(initialized) homebridge.updatePluginConfig([pluginConfig]);
@@ -45,6 +48,44 @@ function App() {
       homebridge.hideSpinner();
     })
   }, [setPluginConfig, setInitialized]);
+
+  const hasSniffingParams = pluginConfig.mqtt && pluginConfig.mqtt.protocol && pluginConfig.mqtt.host && pluginConfig.mqtt.port && pluginConfig.rfbridge && pluginConfig.rfbridge.topic;
+
+  useEffect(()=>{
+    if(sniffing > -1 && !waitingForSniff) {
+      setWaitingForSniff(true);
+      console.log("Begin Sniffing");
+      const targetRemote = sniffing;
+      const targetRemoteName = pluginConfig.remotes[targetRemote] ? pluginConfig.remotes[targetRemote].name : 'Unnamed';
+
+      homebridge.toast.info(`Begin sniffing for #${targetRemote+1} (${targetRemoteName}). This will timeout in 5 minutes.`);
+
+      homebridge.request('/sniff', { mqtt: pluginConfig.mqtt, rfbridge: pluginConfig.rfbridge }).then(
+        response => {
+          console.log("Receied response", response)
+          setWaitingForSniff(false);
+          setSniffing(-1);
+
+          if(response.result==='success') {
+            const update = JSON.parse(JSON.stringify(pluginConfig));
+            if(update.remotes[targetRemote]) update.remotes[targetRemote].remote_id = response.data;
+            setPluginConfig(update);
+            homebridge.toast.success(`Updated Remote ID for Remote #${targetRemote+1} (${targetRemoteName})`)
+          }
+          else if(response.result==='timeout') {
+            homebridge.toast.warn('Sniffing timed out');
+          }
+          else if(response.result==='error') {
+            homebridge.toast.error(JSON.stringify(response.data), 'Sniffing Error');
+          }
+
+        }
+      )
+    }
+    else {
+    }
+
+  }, [pluginConfig, sniffing, waitingForSniff])
 
   const removeRemote = (i)=>{
     const update = JSON.parse(JSON.stringify(pluginConfig));
@@ -87,19 +128,25 @@ function App() {
     const remotes = pluginConfig.remotes.map((v,i)=>{
       return (<div key={`remote-${i}`}>
         <div className="list-group-item mb-3">
-          <button type="button" id="removeRemote1710906152345" className="close pull-right" onClick={()=>removeRemote(i)}>
+          <button type="button" id={`remove-remote-${i}`} className="close pull-right" onClick={()=>removeRemote(i)}>
             <span aria-hidden="true">×</span><span className="sr-only">Remove</span>
           </button>
           <div className="form-group">
-              <label className="control-label" htmlFor="remoteName1710906152345">Name <strong className="text-danger">*</strong></label>
-              <input className="form-control" id="remoteName1710906152345" name="name" type="text" required={true} value={v.name} onChange={e=>updateRemote(i,'name',e.target.value)}/>
+              <label className="control-label" htmlFor={`remote-NAME-${i}`}>Name <strong className="text-danger">*</strong></label>
+              <input className="form-control" id={`remote-NAME-${i}`} name="name" type="text" required={true} value={v.name} onChange={e=>updateRemote(i,'name',e.target.value)}/>
           </div>
           <div className="form-group">
-              <label className="control-label" htmlFor="remoteID1710906152345">Remote ID <strong className="text-danger">*</strong></label>
-              <input className="form-control" id="remoteID1710906152345" name="remote_id" type="text" required={true} value={v.remote_id}  onChange={e=>updateRemote(i,'remote_id',e.target.value)}/>
+              <label className="control-label" htmlFor={`remote-ID-${i}`}>Remote ID <strong className="text-danger">*</strong></label>
+              <RemoteIDField 
+                id={`remote-ID-${i}`} 
+                value={v.remote_id}
+                onChange={e=>updateRemote(i,'remote_id',e.target.value)}
+                canSniff={hasSniffingParams && sniffing<0} 
+                onSniff={()=>setSniffing(i)}
+                sniffing={sniffing===i}
+              />
               <p className="help-block">
-                Nibble 1-40 of remote payload. Use either HEX or Binary representation.<br />
-                Example: 0010101110101001001111001110001110111101
+                Binary string of nibble 1-40 of remote payload. <br/> Example: 0010101110101001001111001110001110111101
               </p>
           </div>
         </div>
