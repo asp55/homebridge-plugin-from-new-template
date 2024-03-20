@@ -24,7 +24,7 @@ class UiServer extends HomebridgePluginUiServer {
 
     const results = await new Promise((resolve)=>{
 
-      setTimeout(()=>{resolve({result:'timeout'})}, 60000)
+      setTimeout(()=>{resolve({result:'timeout'})}, 5*60000)
 
       const connectUrl = `${payload.mqtt.protocol}://${payload.mqtt.host}:${payload.mqtt.port}`;
       const connectionParams = {
