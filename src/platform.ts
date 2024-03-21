@@ -172,9 +172,9 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
       // loop over the discovered devices and register each one if it has not already been registered
       for (const roomConfig of this.config.rooms) {
         if(!roomConfig._id) {
-          roomConfig._id = this.api.hap.uuid.generate(Date.now().toString());
+          roomConfig._id = Date.now();
         }
-        const uuid = this.api.hap.uuid.generate(roomConfig._id);
+        const uuid = this.api.hap.uuid.generate(roomConfig._id.toString());
 
         if(this.initializedRemotes.indexOf(uuid)<0) {
 
