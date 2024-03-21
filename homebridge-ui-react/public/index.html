@@ -43,15 +43,15 @@
           "topic": "tasmota_EF54CC",
           "protocol": "00"
         },
-        "remotes": [{
+        "rooms": [{
+            "_id": 1710487022139,
             "name": "Bedroom-Ceiling-TEST",
-            "remote_id": "0010101110101001001111001110001110111101",
-            "_id": 1710487022139
+            "remote_ids": ["0010101110101001001111001110001110111101"],
           },
           {
+            "_id": 1710487022140,
             "name": "Office-Ceiling-TEST",
-            "remote_id": "0100000111101011010010110100010100110101",
-            "_id": 1710487022140
+            "remote_ids": ["0100000111101011010010110100010100110101"]
           }
         ],
         "platform": "HomebridgeMQTTCeilingFanRemote"
@@ -67,6 +67,13 @@
       "schema": {
         "type": "object",
         "properties": {
+          "_version": {
+            "type": "string",
+            "condition": {
+              "functionBody": "return false"
+            },
+            "default": "0.2.0"
+          },
           "mqtt": {
             "type": "object",
             "title": "MQTT",
@@ -74,54 +81,15 @@
               "protocol": {
                 "title": "Protocol",
                 "type": "string",
-                "oneOf": [{
-                    "title": "mqtt",
-                    "enum": [
-                      "mqtt"
-                    ]
-                  },
-                  {
-                    "title": "mqtts",
-                    "enum": [
-                      "mqtts"
-                    ]
-                  },
-                  {
-                    "title": "tcp",
-                    "enum": [
-                      "tcp"
-                    ]
-                  },
-                  {
-                    "title": "tls",
-                    "enum": [
-                      "tls"
-                    ]
-                  },
-                  {
-                    "title": "ws",
-                    "enum": [
-                      "ws"
-                    ]
-                  },
-                  {
-                    "title": "wss",
-                    "enum": [
-                      "wss"
-                    ]
-                  },
-                  {
-                    "title": "wxs",
-                    "enum": [
-                      "wxs"
-                    ]
-                  },
-                  {
-                    "title": "alis",
-                    "enum": [
-                      "alis"
-                    ]
-                  }
+                "oneOf": [
+                  { "title": "mqtt", "enum": ["mqtt"] },
+                  { "title": "mqtts", "enum": ["mqtts"] },
+                  { "title": "tcp", "enum": ["tcp"] },
+                  { "title": "tls", "enum": ["tls"] },
+                  { "title": "ws", "enum": ["ws"] },
+                  { "title": "wss", "enum": ["wss"] },
+                  { "title": "wxs", "enum": ["wxs"] },
+                  { "title": "alis", "enum": ["alis"] }
                 ],
                 "default": "mqtt",
                 "required": true
@@ -154,74 +122,46 @@
             "properties": {
               "topic": {
                 "title": "Topic",
-                "type": "string",
+                "type":"string",
                 "required": true
               },
               "protocol": {
                 "title": "Protocol Index",
-                "type": "string",
+                "type":"string",
                 "required": true,
                 "default": "00"
               }
             }
           },
-          "remotes": {
-            "title": "Accessories",
+          "rooms": {
+            "title": "Rooms",
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "name": {
-                  "title": "Name",
-                  "type": "string",
-                  "required": true
-                },
-                "remote_id": {
-                  "title": "Remote Code",
-                  "description": "Nibble 1-40 of remote payload. Use either HEX or Binary representation.<br/>Example: 0010101110101001001111001110001110111101",
-                  "type": "string",
-                  "required": true
-                },
                 "_id": {
                   "type": "string",
                   "condition": {
                     "functionBody": "return false"
                   }
+                },
+                "name": {
+                  "title": "Name",
+                  "type": "string",
+                  "required": true
+                },
+                "remote_ids":{
+                  "title": "Remotes",
+                  "description": "Homekit inputs will be sent from the first remote code",
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "title": "Remote Code",
+                    "description": "Binary string of nibble 1-40 of remote payload. <br/>Example: 0010101110101001001111001110001110111101",
+                    "type": "string",
+                    "required": true
+                  }
                 }
-              }
-            }
-          },
-          "_bridge": {
-            "type": "object",
-            "notitle": true,
-            "condition": {
-              "functionBody": "return false"
-            },
-            "properties": {
-              "name": {
-                "type": "string"
-              },
-              "username": {
-                "type": "string"
-              },
-              "pin": {
-                "type": "string"
-              },
-              "port": {
-                "type": "integer",
-                "maximum": 65535
-              },
-              "setupID": {
-                "type": "string"
-              },
-              "manufacturer": {
-                "type": "string"
-              },
-              "firmwareRevision": {
-                "type": "string"
-              },
-              "model": {
-                "type": "string"
               }
             }
           }

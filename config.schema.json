@@ -91,7 +91,9 @@
             },
             "remote_ids":{
               "title": "Remotes",
+              "description": "Homekit inputs will be sent from the first remote code",
               "type": "array",
+              "minItems": 1,
               "items": {
                 "title": "Remote Code",
                 "description": "Binary string of nibble 1-40 of remote payload. <br/>Example: 0010101110101001001111001110001110111101",

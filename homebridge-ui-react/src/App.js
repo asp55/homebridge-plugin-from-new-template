@@ -43,6 +43,7 @@ function App() {
 
       const initialSchema = unpackSchema(_pluginConfigSchema.schema, _pluginConfig);
 
+      initialSchema._version = "0.2.0";
       setPluginConfig(initialSchema);
       setInitialized(true)
       homebridge.hideSpinner();
@@ -93,27 +94,46 @@ function App() {
 
   }, [pluginConfig, sniffing, waitingForSniff])
 
-  const removeRemote = (i)=>{
+  const removeRoom = (i)=>{
     const update = JSON.parse(JSON.stringify(pluginConfig));
-    update.remotes.splice(i,1);
+    update.rooms.splice(i,1);
     setPluginConfig(update);
   };
 
-  const updateRemote = (i, key, value)=>{
+  const updateRoom = (i, key, value)=>{
     const update = JSON.parse(JSON.stringify(pluginConfig));
-    update.remotes[i][key] = value;
+    update.rooms[i][key] = value;
     setPluginConfig(update);
   };
 
-  const addRemote = ()=>{
+  const addRoom = ()=>{
     const update = JSON.parse(JSON.stringify(pluginConfig));
-    update.remotes.push({
+    update.rooms.push({
+      _id: Date.now(),
       name:'',
-      remote_id: '',
-      _id: Date.now()
+      remote_ids: ['']
     });
     setPluginConfig(update);
   }
+
+  const removeRemote = (roomNum, remoteNum)=>{
+    const update = JSON.parse(JSON.stringify(pluginConfig));
+    update.rooms[roomNum].remote_ids.splice(remoteNum,1);
+    setPluginConfig(update);
+  }
+
+  const updateRemote = (roomNum, remoteNum, value)=>{
+    const update = JSON.parse(JSON.stringify(pluginConfig));
+    update.rooms[roomNum].remote_ids = value;
+    setPluginConfig(update);
+  };
+
+  const addRemote = (roomNum)=>{
+    const update = JSON.parse(JSON.stringify(pluginConfig));
+    update.rooms[roomNum].remote_ids.push('');
+    setPluginConfig(update);
+  }
+  
 
   const updateMQTT = (key, value)=>{
     const update = JSON.parse(JSON.stringify(pluginConfig));
@@ -131,33 +151,121 @@ function App() {
     return (<div>Initializing</div>);
   }
   else {
-    const remotes = pluginConfig.remotes.map((v,i)=>{
-      return (<div key={`remote-${i}`}>
-        <div className="list-group-item mb-3">
-          <button type="button" id={`remove-remote-${i}`} className="close pull-right" onClick={()=>removeRemote(i)}>
-            <span aria-hidden="true">×</span><span className="sr-only">Remove</span>
-          </button>
-          <div className="form-group">
-              <label className="control-label" htmlFor={`remote-NAME-${i}`}>Name <strong className="text-danger">*</strong></label>
-              <input className="form-control" id={`remote-NAME-${i}`} name="name" type="text" required={true} value={v.name} onChange={e=>updateRemote(i,'name',e.target.value)}/>
-          </div>
-          <div className="form-group">
-              <label className="control-label" htmlFor={`remote-ID-${i}`}>Remote ID <strong className="text-danger">*</strong></label>
+    const rooms = (pluginConfig.rooms && Array.isArray(pluginConfig.rooms)) ? pluginConfig.rooms.map((room, i)=>{
+
+      const canRemoveRemotes = room.remote_ids.length > 1;
+
+      const remotes = (room.remote_ids && Array.isArray(room.remote_ids)) ? room.remote_ids.map((remote,j)=>{
+        const removeButton = canRemoveRemotes ? 
+          (
+            <button type="button" id={`remove-room-${i}-remote-${j}`} className="close pull-right ml-3" onClick={()=>removeRemote(i,j)}>
+              <span aria-hidden="true">×</span><span className="sr-only">Remove</span>
+            </button>
+          ) 
+          : '';
+
+          return (
+            <div key={`room-${i}-remote-${j}`} className="mb-3" style={{display: "grid", gridTemplateColumns:"1fr min-content"}}>
               <RemoteIDField 
-                id={`remote-ID-${i}`} 
-                value={v.remote_id}
-                onChange={e=>updateRemote(i,'remote_id',e.target.value)}
-                canSniff={hasSniffingParams && sniffing<0} 
-                onSniff={()=>setSniffing(i)}
-                sniffing={sniffing===i}
-              />
+                  id={`remote-ID-${i}-${j}`} 
+                  value={remote}
+                  onChange={e=>updateRemote(i, j, e.target.value)}
+                  canSniff={hasSniffingParams && sniffing<0} 
+                  onSniff={()=>setSniffing(i)}
+                  sniffing={sniffing===i}
+                />
+              {removeButton}
+            </div>
+          )
+
+        // return (
+        //   <div key={`room-${i}-remote-${j}`}>
+        //     <div className="list-group-item mb-3">
+        //       {removeButton}
+        //       <div className="form-group">
+        //           <label className="control-label" htmlFor={`remote-ID-${i}-${j}`}>Remote ID <strong className="text-danger">*</strong></label>
+        //           <RemoteIDField 
+        //             id={`remote-ID-${i}-${j}`} 
+        //             value={remote}
+        //             onChange={e=>updateRemote(i, j, e.target.value)}
+        //             canSniff={hasSniffingParams && sniffing<0} 
+        //             onSniff={()=>setSniffing(i)}
+        //             sniffing={sniffing===i}
+        //           />
+        //           <p className="help-block">
+        //             Binary string of nibble 1-40 of remote payload. <br/> Example: 0010101110101001001111001110001110111101
+        //           </p>
+        //       </div>
+        //     </div>
+        //   </div>
+        // )
+      }) 
+      : '';
+
+      return (
+        <div key={`room-${i}`}>
+          <div className="list-group-item mb-3">
+            <button type="button" id={`remove-room-${i}`} className="close pull-right" onClick={()=>removeRoom(i)}>
+              <span aria-hidden="true">×</span><span className="sr-only">Remove</span>
+            </button>
+            <div className="form-group">
+                <label className="control-label" htmlFor={`room-NAME-${i}`}>Name <strong className="text-danger">*</strong></label>
+                <input className="form-control" id={`room-NAME-${i}`} name="name" type="text" required={true} value={room.name} onChange={e=>updateRoom(i,'name',e.target.value)}/>
+            </div>
+            <div className="list-group">
+              <label className="control-label">Remotes <strong className="text-danger">*</strong></label>
               <p className="help-block">
-                Binary string of nibble 1-40 of remote payload. <br/> Example: 0010101110101001001111001110001110111101
+                Homekit inputs will be sent from the first remote code
               </p>
+              <div className="list-group-item">
+                <fieldset>
+                  <label className="control-label">Remote Code <strong className="text-danger">*</strong></label>
+                  <p className="help-block">
+                    Binary string of nibble 1-40 of remote payload. (<strong>Example:</strong> 0010101110101001001111001110001110111101)
+                  </p>
+                  <div id={`room-${i}-remotes`}>
+                    {remotes}
+                  </div>
+                  <div className="form-group">
+                    <button id={`room-${i}-addRemote`} className="btn btn-link mx-0 p-0 fa-pull-right" onClick={()=>addRemote(i)} >Add Remote</button>
+                  </div>
+                  
+                </fieldset>
+              </div>
+            </div>
           </div>
         </div>
-      </div>);
-    });
+      );
+
+    }) 
+    : '';
+    // const remotes = pluginConfig.remotes.map((v,i)=>{
+    //   return (<div key={`remote-${i}`}>
+    //     <div className="list-group-item mb-3">
+    //       <button type="button" id={`remove-remote-${i}`} className="close pull-right" onClick={()=>removeRemote(i)}>
+    //         <span aria-hidden="true">×</span><span className="sr-only">Remove</span>
+    //       </button>
+    //       <div className="form-group">
+    //           <label className="control-label" htmlFor={`remote-NAME-${i}`}>Name <strong className="text-danger">*</strong></label>
+    //           <input className="form-control" id={`remote-NAME-${i}`} name="name" type="text" required={true} value={v.name} onChange={e=>updateRemote(i,'name',e.target.value)}/>
+    //       </div>
+    //       <div className="form-group">
+    //           <label className="control-label" htmlFor={`remote-ID-${i}`}>Remote ID <strong className="text-danger">*</strong></label>
+    //           <RemoteIDField 
+    //             id={`remote-ID-${i}`} 
+    //             value={v.remote_id}
+    //             onChange={e=>updateRemote(i,'remote_id',e.target.value)}
+    //             canSniff={hasSniffingParams && sniffing<0} 
+    //             onSniff={()=>setSniffing(i)}
+    //             sniffing={sniffing===i}
+    //           />
+    //           <p className="help-block">
+    //             Binary string of nibble 1-40 of remote payload. <br/> Example: 0010101110101001001111001110001110111101
+    //           </p>
+    //       </div>
+    //     </div>
+    //   </div>);
+    // });
 
     return (
     <form id="configForm" autoComplete="off">
@@ -207,12 +315,12 @@ function App() {
       <div className="card card-body mb-4">
         <div className="list-group">
           <fieldset>
-            <legend>Remotes</legend>
-            <div id="remotes">
-              {remotes}
+            <legend>Rooms</legend>
+            <div id="rooms">
+              {rooms}
             </div>
             <div className="form-group">
-              <button id="addRemote" className="btn btn-default fa-pull-right" onClick={addRemote} >Add Remote</button>
+              <button id="addRoom" className="btn btn-default fa-pull-right" onClick={addRoom} >Add Room</button>
             </div>
           </fieldset>
         </div>
