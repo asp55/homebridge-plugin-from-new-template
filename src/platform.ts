@@ -1,6 +1,6 @@
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
 
-import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
+import { PLATFORM_NAME, PLUGIN_NAME, SCHEMA_VERSION } from './settings';
 import { CeilingFanRemote } from './platformAccessory';
 import os from 'os';
 
@@ -68,12 +68,13 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
 
   // this is used to track restored cached accessories
   public readonly accessories: PlatformAccessory[] = [];
-  public readonly remotes: {[remote_id:string] : CeilingFanRemote} = {};
+  public readonly rooms:CeilingFanRemote[] = [];
+  public readonly remotes: {[remote_id:string] : CeilingFanRemote[]} = {};
   public readonly initializedRemotes: string[] = [];
 
   public readonly remoteCommands = {};
 
-  private mqttClient:mqtt.MqttClient;
+  private mqttClient:mqtt.MqttClient | undefined;
   private rfbridgeResultsTopic:string = '';
   private rfbridgeBootTopic:string = '';
 
@@ -84,41 +85,50 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
   ) {
     this.log.debug('Initializing ceiling fan platform');
 
-
-    const connectUrl = `${this.config.mqtt.protocol}://${this.config.mqtt.host}:${this.config.mqtt.port}`;
-    const connectionParams:mqtt.IClientOptions = {
-      clientId: `${PLATFORM_NAME}_${os.hostname()}`,
-      clean: false,
-      connectTimeout: 4000,
-      reconnectPeriod: 1000,
-    };
-
-    if(this.config.mqtt.user) {
-      connectionParams.username = this.config.mqtt.user;
+    if(!(this.config._version && this.config._version === SCHEMA_VERSION )) {
+      this.log.info(`Schema version has been updated.
+      You're currently using version ${this.config._version ? this.config._version : '0.0.0'} 
+      The latest version is ${SCHEMA_VERSION}
+      Please update your configuration.`);
     }
+    else {
+      const connectUrl = `${this.config.mqtt.protocol}://${this.config.mqtt.host}:${this.config.mqtt.port}`;
+      const connectionParams:mqtt.IClientOptions = {
+        clientId: `${PLATFORM_NAME}_${os.hostname()}`,
+        clean: false,
+        connectTimeout: 4000,
+        reconnectPeriod: 1000,
+      };
 
-    if(this.config.mqtt.password) {
-      connectionParams.password = this.config.mqtt.password;
+      if(this.config.mqtt.user) {
+        connectionParams.username = this.config.mqtt.user;
+      }
+
+      if(this.config.mqtt.password) {
+        connectionParams.password = this.config.mqtt.password;
+      }
+
+      this.rfbridgeResultsTopic = `tele/${this.config.rfbridge.topic}/RESULT`;
+      this.rfbridgeBootTopic = `tele/${this.config.rfbridge.topic}/INFO3`;
+
+      this.mqttClient = mqtt.connect(connectUrl, connectionParams);
+
+      const connectCallback = () => {
+        this.log.debug('MQTT Connected');
+        if(this.mqttClient) {
+          this.mqttClient.subscribe([this.rfbridgeResultsTopic, this.rfbridgeBootTopic], () => {
+            this.log.debug(`Subscribed to topic '${this.rfbridgeResultsTopic}'`);
+          });
+
+          //Make sure that code sniffing is on
+          this.mqttClient.publish(`cmnd/${this.config.rfbridge.topic}/rfraw`, 'AAA655');
+        }
+      };
+
+      this.mqttClient.on('connect', connectCallback);
+
+      this.mqttClient.on('reconnect', connectCallback);
     }
-
-    this.rfbridgeResultsTopic = `tele/${this.config.rfbridge.topic}/RESULT`;
-    this.rfbridgeBootTopic = `tele/${this.config.rfbridge.topic}/INFO3`;
-
-    this.mqttClient = mqtt.connect(connectUrl, connectionParams);
-
-    const connectCallback = () => {
-      this.log.debug('MQTT Connected');
-      this.mqttClient.subscribe([this.rfbridgeResultsTopic, this.rfbridgeBootTopic], () => {
-        this.log.debug(`Subscribed to topic '${this.rfbridgeResultsTopic}'`);
-      });
-
-      //Make sure that code sniffing is on
-      this.mqttClient.publish(`cmnd/${this.config.rfbridge.topic}/rfraw`, 'AAA655');
-    };
-
-    this.mqttClient.on('connect', connectCallback);
-
-    this.mqttClient.on('reconnect', connectCallback);
 
 
     // When this event is fired it means Homebridge has restored all cached accessories from disk.
@@ -144,13 +154,27 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
     this.accessories.push(accessory);
   }
 
+  private removeUnusedAccessoriesFromCache() {
+    //Remove any cached remotes that aren't in the config anymore.
+    this.accessories.forEach(existingAccessory=>{
+      this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
+      this.log.info('Removing existing accessory from cache:', existingAccessory.displayName);
+    });
+  }
+
   initialize() {
     this.log.debug('Initializing.');
 
-    if(this.config.remotes && Array.isArray(this.config.remotes)) {
+    if(!(this.config._version && this.config._version === SCHEMA_VERSION )) {
+      this.removeUnusedAccessoriesFromCache();
+    }
+    else if(this.config.rooms && Array.isArray(this.config.rooms)) {
       // loop over the discovered devices and register each one if it has not already been registered
-      for (const remoteConfig of this.config.remotes) {
-        const uuid = this.api.hap.uuid.generate(remoteConfig.remote_id);
+      for (const roomConfig of this.config.rooms) {
+        if(!roomConfig._id) {
+          roomConfig._id = this.api.hap.uuid.generate(Date.now().toString());
+        }
+        const uuid = this.api.hap.uuid.generate(roomConfig._id);
 
         if(this.initializedRemotes.indexOf(uuid)<0) {
 
@@ -160,98 +184,110 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
           // the cached devices we stored in the `configureAccessory` method above
           const existingAccessoryIndex = this.accessories.findIndex(accessory => accessory.UUID === uuid);
   
-          if (existingAccessoryIndex >= 0) {
-            // the accessory already exists
-            const existingAccessory = this.accessories.splice(existingAccessoryIndex, 1)[0];
+          const remote: CeilingFanRemote = (()=>{
+            if (existingAccessoryIndex >= 0) {
+              // the accessory already exists
+              const existingAccessory = this.accessories.splice(existingAccessoryIndex, 1)[0];
+    
+              this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
+    
+              // Update the context to make sure the current settings are in the context
+              existingAccessory.context.config = roomConfig;
+              this.api.updatePlatformAccessories([existingAccessory]);
+    
+              return new CeilingFanRemote(this, existingAccessory);
   
-            this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
-  
-            // Update the context to make sure the current settings are in the context
-            existingAccessory.context.config = remoteConfig;
-            this.api.updatePlatformAccessories([existingAccessory]);
-  
-            //this.remotes.push(new CeilingFanRemote(this, existingAccessory));
-            this.remotes[remoteConfig.remote_id] = new CeilingFanRemote(this, existingAccessory);
-          } else {
-            // the accessory does not yet exist, so we need to create it
-            this.log.info('Adding new accessory:', remoteConfig.name);
-  
-            // create a new accessory
-            const accessory = new this.api.platformAccessory(remoteConfig.name, uuid);
-            accessory.context.config = remoteConfig;
-            this.remotes[remoteConfig.remote_id] = new CeilingFanRemote(this, accessory);
-            this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+              //this.remotes[remoteConfig.remote_id] = new CeilingFanRemote(this, existingAccessory);
+            } else {
+              // the accessory does not yet exist, so we need to create it
+              this.log.info('Adding new accessory:', roomConfig.name);
+    
+              // create a new accessory
+              const accessory = new this.api.platformAccessory(roomConfig.name, uuid);
+              accessory.context.config = roomConfig;
+              //this.remotes[remoteConfig.remote_id] = new CeilingFanRemote(this, accessory);
+              this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+
+              return new CeilingFanRemote(this, accessory);
+            }
+          })();
+
+          this.rooms.push(remote);
+
+          for(const remote_id of roomConfig.remote_ids) {
+            if(!(this.remotes[remote_id] && Array.isArray(this.remotes[remote_id]))) {
+              this.remotes[remote_id] = [];
+            }
+            this.remotes[remote_id].push(remote);
           }
+          
         }
         else {
-          this.log.error(`Already initialized a remote with id ${remoteConfig.remote_id}. Remote ID must be unique.`);
+          this.log.error(`Already initialized a room with id ${roomConfig._id}. Room ID must be unique.`);
         }
       }
 
-
-      this.mqttClient.on('message', (topic, payload) => {
-        if(topic===this.rfbridgeResultsTopic) {
-          //Parse rfraw data;
-          const rfraw = JSON.parse(payload.toString()).RfRaw;
-          if(rfraw && rfraw.Data) {
-            const message = rfraw.Data as string;
-            this.log.debug('Received Message:', topic, message);
-
-            if(message.substring(2, 4)==='A6' && message.substring(6, 8)===this.config.rfbridge.protocol) {
-
-              this.log.debug('Parsing Message:', message);
-              const uartPayload = message.substring(8, message.length-2);
-
-              const bytes = uartPayload.match(/../g);
-              if(bytes) {
-                const binaryString = bytes.map(byte=>{
-                  return parseInt(byte, 16).toString(2).padStart(8, '0');
-                }).join('');
-
-                const parsedBinary = binaryString.match(/^1(.{40})00(.{10})11(.{10})0.*/);
-                if(parsedBinary !== null ) {
-                  // const command = parsedBinary[2];
-                  // const iCommand = parsedBinary[3];
-                  // this.log.debug('  to binary -> ', binaryString, {room, command, iCommand, commandNum: parseInt(command, 2)});
-
-                  const room = parsedBinary[1];
-                  const command = parseInt(parsedBinary[2], 2);
-
-                  if(this.remotes[room]) {
-                    this.remotes[room].update(command);
+      if(this.mqttClient) {
+        this.mqttClient.on('message', (topic, payload) => {
+          if(topic===this.rfbridgeResultsTopic) {
+            //Parse rfraw data;
+            const rfraw = JSON.parse(payload.toString()).RfRaw;
+            if(rfraw && rfraw.Data) {
+              const message = rfraw.Data as string;
+              this.log.debug('Received Message:', topic, message);
+  
+              if(message.substring(2, 4)==='A6' && message.substring(6, 8)===this.config.rfbridge.protocol) {
+  
+                this.log.debug('Parsing Message:', message);
+                const uartPayload = message.substring(8, message.length-2);
+  
+                const bytes = uartPayload.match(/../g);
+                if(bytes) {
+                  const binaryString = bytes.map(byte=>{
+                    return parseInt(byte, 16).toString(2).padStart(8, '0');
+                  }).join('');
+  
+                  const parsedBinary = binaryString.match(/^1(.{40})00(.{10})11(.{10})0.*/);
+                  if(parsedBinary !== null ) {
+                    // const command = parsedBinary[2];
+                    // const iCommand = parsedBinary[3];
+                    // this.log.debug('  to binary -> ', binaryString, {room, command, iCommand, commandNum: parseInt(command, 2)});
+  
+                    const remote = parsedBinary[1];
+                    const command = parseInt(parsedBinary[2], 2);
+  
+                    if(this.remotes[remote]) {
+                      this.remotes[remote].forEach(room=>room.update(command));
+                    }
                   }
                 }
               }
             }
           }
-        }
-        else if(topic===this.rfbridgeBootTopic) {
-          //Make sure that code sniffing is on
-          this.mqttClient.publish(`cmnd/${this.config.rfbridge.topic}/rfraw`, 'AAA655');
-        }
-      });
+          else if(topic===this.rfbridgeBootTopic) {
+            //Make sure that code sniffing is on
+            if(this.mqttClient) {
+              this.mqttClient.publish(`cmnd/${this.config.rfbridge.topic}/rfraw`, 'AAA655');
+            }
+          }
+        });
+      }
+
 
       //Add event listener to remotes for transmitting changes to mqtt
-      Object.values(this.remotes).forEach(remote=>{
-        remote.addListener('update', props=>{
-          this.log.debug('Update received', props);
-
-
+      Object.values(this.rooms).forEach(rooms=>{
+        rooms.addListener('update', props=>{
           const command = commands[props.parameter][props.value];
           this.log.debug(`Sending command: ${props.parameter} (${props.value})`, command);
 
-          if(command && command > -1) {
+          if(command && command > -1 && this.mqttClient) {
             this.mqttClient.publish(`cmnd/${this.config.rfbridge.topic}/rfraw`, hexCommand(props.remote, command));
           }
-
         });
       });
 
       //Remove any cached remotes that aren't in the config anymore.
-      this.accessories.forEach(existingAccessory=>{
-        this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
-        this.log.info('Removing existing accessory from cache:', existingAccessory.displayName);
-      });
+      this.removeUnusedAccessoriesFromCache();
     }
   }
 }

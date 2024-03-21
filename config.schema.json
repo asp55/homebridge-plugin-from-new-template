@@ -6,6 +6,13 @@
   "schema": {
     "type": "object",
     "properties": {
+      "_version": {
+        "type": "string",
+        "condition": {
+          "functionBody": "return false"
+        },
+        "default": "0.2.0"
+      },
       "mqtt": {
         "type": "object",
         "title": "MQTT",
@@ -65,30 +72,33 @@
           }
         }
       },
-      "remotes": {
-        "title": "Accessories",
+      "rooms": {
+        "title": "Rooms",
         "type": "array",
         "items": {
           "type": "object",
           "properties": {
-            "name": {
-              "title": "Name",
-              "type": "string",
-              "required": true
-            },
-            "remote_id": {
-              "title": "Remote Code",
-              "description": "Binary string of nibble 1-40 of remote payload. <br/>Example: 0010101110101001001111001110001110111101",
-              "type": "string",
-              "required": true
-            },
             "_id": {
               "type": "string",
               "condition": {
                 "functionBody": "return false"
               }
+            },
+            "name": {
+              "title": "Name",
+              "type": "string",
+              "required": true
+            },
+            "remote_ids":{
+              "title": "Remotes",
+              "type": "array",
+              "items": {
+                "title": "Remote Code",
+                "description": "Binary string of nibble 1-40 of remote payload. <br/>Example: 0010101110101001001111001110001110111101",
+                "type": "string",
+                "required": true
+              }
             }
-
           }
         }
       }
