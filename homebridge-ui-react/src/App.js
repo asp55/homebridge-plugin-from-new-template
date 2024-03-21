@@ -1,5 +1,10 @@
+import './App.css';
 import { useEffect, useState } from "react";
 import RemoteIDField from "./components/RemoteIDField/RemoteIDField";
+import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
+import reorder from "./utils/reorder";
+import {ReactComponent as DragHandle} from "./assets/drag-handle.svg";
+
 
 const homebridge = window.homebridge;
 
@@ -9,9 +14,18 @@ function App() {
   const [sniffingRoom, setSniffingRoom] = useState(-1);
   const [sniffingRemote, setSniffingRemote] = useState(-1);
   const [waitingForSniff, setWaitingForSniff] = useState(false);
+  const [draggingRemoteRoom, setDraggingRemoteRoom] = useState(-1);
+  const [draggingRemote, setDraggingRemote] = useState(-1);
 
   useEffect(()=>{
-    if(initialized) homebridge.updatePluginConfig([pluginConfig]);
+    if(initialized) {
+      const config = JSON.parse(JSON.stringify(pluginConfig));
+      config.rooms = config.rooms.map(room=>{
+        const remote_ids = room.remote_ids.map(remote_id=>remote_id.value);
+        return {...room, remote_ids:remote_ids};
+      })
+      homebridge.updatePluginConfig([config]);
+    }
   }, [pluginConfig, initialized]);
 
   useEffect(()=>{
@@ -44,6 +58,12 @@ function App() {
 
       const initialSchema = unpackSchema(_pluginConfigSchema.schema, _pluginConfig);
 
+      const updatedRooms = initialSchema.rooms.map(room=>{
+        const remote_ids = room.remote_ids.map(remote_id=>{return {value:remote_id, key:Date.now()}});
+        return {...room, remote_ids:remote_ids};
+      })
+      initialSchema.rooms = updatedRooms;
+      
       initialSchema._version = "0.2.0";
       setPluginConfig(initialSchema);
       setInitialized(true)
@@ -95,7 +115,27 @@ function App() {
     else {
     }
 
-  }, [pluginConfig, sniffingRoom, sniffingRemote, waitingForSniff])
+  }, [pluginConfig, sniffingRoom, sniffingRemote, waitingForSniff]);
+
+  const onDragEnd = (room, result)=>{
+    setDraggingRemoteRoom(-1);
+    setDraggingRemote(-1);
+
+    // dropped outside the list
+    if (!result.destination) {
+      return;
+    }
+
+    const update = JSON.parse(JSON.stringify(pluginConfig));
+    update.rooms[room].remote_ids = reorder(update.rooms[room].remote_ids, result.source.index, result.destination.index);
+    setPluginConfig(update);
+    
+  }
+
+  function onDragStart(room, e) {
+    setDraggingRemoteRoom(room);
+    setDraggingRemote(e.source.index);
+  }
 
   const removeRoom = (i)=>{
     const update = JSON.parse(JSON.stringify(pluginConfig));
@@ -114,7 +154,7 @@ function App() {
     update.rooms.push({
       _id: Date.now(),
       name:'',
-      remote_ids: ['']
+      remote_ids: [{value:" ", key:Date.now()}]
     });
     setPluginConfig(update);
   }
@@ -127,13 +167,13 @@ function App() {
 
   const updateRemote = (roomNum, remoteNum, value)=>{
     const update = JSON.parse(JSON.stringify(pluginConfig));
-    update.rooms[roomNum].remote_ids = value;
+    update.rooms[roomNum].remote_ids[remoteNum].value = value;
     setPluginConfig(update);
   };
 
   const addRemote = (roomNum)=>{
     const update = JSON.parse(JSON.stringify(pluginConfig));
-    update.rooms[roomNum].remote_ids.push('');
+    update.rooms[roomNum].remote_ids.push({value:'', key:Date.now()});
     setPluginConfig(update);
   }
   
@@ -156,10 +196,13 @@ function App() {
   else {
     const rooms = (pluginConfig.rooms && Array.isArray(pluginConfig.rooms)) ? pluginConfig.rooms.map((room, i)=>{
 
-      const canRemoveRemotes = room.remote_ids.length > 1;
+      const multipleRemotes = room.remote_ids.length > 1;
+
+      const remoteContainerClass = ['remotes'];
+      if(draggingRemoteRoom===i) remoteContainerClass.push('dragContainer');
 
       const remotes = (room.remote_ids && Array.isArray(room.remote_ids)) ? room.remote_ids.map((remote,j)=>{
-        const removeButton = canRemoveRemotes ? 
+        const removeButton = multipleRemotes ? 
           (
             <button type="button" id={`remove-room-${i}-remote-${j}`} className="close pull-right ml-3" onClick={()=>removeRemote(i,j)}>
               <span aria-hidden="true">×</span><span className="sr-only">Remove</span>
@@ -167,44 +210,43 @@ function App() {
           ) 
           : '';
 
-          return (
-            <div key={`room-${i}-remote-${j}`} className="mb-3" style={{display: "grid", gridTemplateColumns:"1fr min-content"}}>
-              <RemoteIDField 
-                  id={`remote-ID-${i}-${j}`} 
-                  value={remote}
-                  onChange={e=>updateRemote(i, j, e.target.value)}
-                  canSniff={hasSniffingParams && sniffingRoom<0} 
-                  onSniff={()=>{
-                    setSniffingRoom(i);
-                    setSniffingRemote(j);
-                  }}
-                  sniffing={sniffingRoom===i&&sniffingRemote===j}
-                />
-              {removeButton}
-            </div>
-          )
+          const rowClassName = ['px-3','py-2','remote'];
 
-        // return (
-        //   <div key={`room-${i}-remote-${j}`}>
-        //     <div className="list-group-item mb-3">
-        //       {removeButton}
-        //       <div className="form-group">
-        //           <label className="control-label" htmlFor={`remote-ID-${i}-${j}`}>Remote ID <strong className="text-danger">*</strong></label>
-        //           <RemoteIDField 
-        //             id={`remote-ID-${i}-${j}`} 
-        //             value={remote}
-        //             onChange={e=>updateRemote(i, j, e.target.value)}
-        //             canSniff={hasSniffingParams && sniffing<0} 
-        //             onSniff={()=>setSniffingRoom(i)}
-        //             sniffing={sniffing===i}
-        //           />
-        //           <p className="help-block">
-        //             Binary string of nibble 1-40 of remote payload. <br/> Example: 0010101110101001001111001110001110111101
-        //           </p>
-        //       </div>
-        //     </div>
-        //   </div>
-        // )
+          if(draggingRemoteRoom===i && draggingRemote===j) rowClassName.push('dragging');
+          
+          return (
+            <Draggable key={`room-${i}-remote-${remote.key}}`} draggableId={`room-${i}-remote-${remote.key}`} index={j} >
+              {provided => (
+                <div
+                ref={provided.innerRef} 
+                {...provided.draggableProps}>
+                  <div 
+                    className={rowClassName.join(" ")} 
+                    style={{
+                      display: "grid", 
+                      gridTemplateColumns: multipleRemotes ? "min-content 1fr min-content" : "1fr min-content",
+                      alignItems: "center"
+                    }}
+                    
+                  >
+                    <div {...provided.dragHandleProps} style={{display: multipleRemotes ? "block" : "none", paddingRight:"0.5rem"}}><DragHandle /></div>
+                    <RemoteIDField 
+                        id={`remote-ID-${i}-${remote.key}`} 
+                        value={remote.value}
+                        onChange={e=>updateRemote(i, j, e.target.value)}
+                        canSniff={hasSniffingParams && sniffingRoom<0} 
+                        onSniff={()=>{
+                          setSniffingRoom(i);
+                          setSniffingRemote(j);
+                        }}
+                        sniffing={sniffingRoom===i&&sniffingRemote===j}
+                      />
+                    {removeButton}
+                  </div>
+                  </div>
+              )}
+            </Draggable>
+          )
       }) 
       : '';
 
@@ -229,9 +271,20 @@ function App() {
                   <p className="help-block">
                     Binary string of nibble 1-40 of remote payload. (<strong>Example:</strong> 0010101110101001001111001110001110111101)
                   </p>
-                  <div id={`room-${i}-remotes`}>
-                    {remotes}
-                  </div>
+                  <DragDropContext onDragStart={e=>onDragStart(i,e)} onDragEnd={(result)=>onDragEnd(i, result)}>
+                    <Droppable droppableId="list">
+                      {provided => (
+                        <div id={`room-${i}-remotes`} className={remoteContainerClass.join(" ")} ref={provided.innerRef} {...provided.droppableProps}>
+                          {remotes}
+                          {provided.placeholder}
+                        </div>
+                        // <div className={dragging>=0 ? "dragging" : "not-dragging"} ref={provided.innerRef} {...provided.droppableProps}>
+                        //   <ColumnsList tableWidth={tableWidth} dragging={dragging} columns={columnDetails} onUpdate={onColumnUpdate} onSubmit={onSubmit} onDelete={onColumnDelete}/>
+                        //   {provided.placeholder}
+                        // </div>
+                      )}
+                    </Droppable>
+                  </DragDropContext>
                   <div className="form-group">
                     <button id={`room-${i}-addRemote`} className="btn btn-link mx-0 p-0 fa-pull-right" onClick={()=>addRemote(i)} >Add Remote</button>
                   </div>

@@ -1,7 +1,8 @@
-export default function RemoteIDField({id, value, onChange, onSniff, canSniff=true, sniffing=false}) {
-  const inputProps = {};
+export default function RemoteIDField({id, value="", onChange, onSniff, canSniff=true, sniffing=false}) {
+  const inputProps = {
+    value: value
+  };
   if(onChange) inputProps.onChange = onChange;
-  if(value) inputProps.value = value;
   if(id) inputProps.id = id;
 
   const buttonProps = {};
