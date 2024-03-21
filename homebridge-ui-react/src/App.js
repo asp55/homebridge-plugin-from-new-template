@@ -6,7 +6,8 @@ const homebridge = window.homebridge;
 function App() {
   const [pluginConfig, setPluginConfig] = useState({});
   const [initialized, setInitialized] = useState(false);
-  const [sniffing, setSniffing] = useState(-1);
+  const [sniffingRoom, setSniffingRoom] = useState(-1);
+  const [sniffingRemote, setSniffingRemote] = useState(-1);
   const [waitingForSniff, setWaitingForSniff] = useState(false);
 
   useEffect(()=>{
@@ -53,25 +54,27 @@ function App() {
   const hasSniffingParams = pluginConfig.mqtt && pluginConfig.mqtt.protocol && pluginConfig.mqtt.host && pluginConfig.mqtt.port && pluginConfig.rfbridge && pluginConfig.rfbridge.topic;
 
   useEffect(()=>{
-    if(sniffing > -1 && !waitingForSniff) {
+    if(sniffingRoom > -1 && sniffingRemote > -1 && !waitingForSniff) {
       setWaitingForSniff(true);
       console.log("Begin Sniffing");
-      const targetRemote = sniffing;
-      const targetRemoteName = pluginConfig.remotes[targetRemote] ? pluginConfig.remotes[targetRemote].name : 'Unnamed';
+      const targetRoom = sniffingRoom;
+      const targetRemote = sniffingRemote;
+      const targetRoomName = pluginConfig.rooms[targetRoom] ? pluginConfig.rooms[targetRoom].name : 'Unnamed';
 
-      homebridge.toast.info(`Begin sniffing for #${targetRemote+1} (${targetRemoteName}). This will timeout in 5 minutes.`);
+      homebridge.toast.info(`Begin sniffing for #${targetRemote+1} in Room ${targetRoomName}. This will timeout in 5 minutes.`);
 
       homebridge.request('/sniff', { mqtt: pluginConfig.mqtt, rfbridge: pluginConfig.rfbridge }).then(
         response => {
           console.log("Receied response", response)
           setWaitingForSniff(false);
-          setSniffing(-1);
+          setSniffingRoom(-1);
+          setSniffingRemote(-1);
 
           if(response.result==='success') {
             const update = JSON.parse(JSON.stringify(pluginConfig));
-            if(update.remotes[targetRemote]) update.remotes[targetRemote].remote_id = response.data;
+            if(update.rooms[targetRoom] && update.rooms[targetRoom].remote_ids[targetRemote]) update.rooms[targetRoom].remote_ids[targetRemote] = response.data;
             setPluginConfig(update);
-            homebridge.toast.success(`Updated Remote ID for Remote #${targetRemote+1} (${targetRemoteName})`)
+            homebridge.toast.success(`Updated Remote ID for Remote #${targetRemote+1} in Room ${targetRoomName}`)
           }
           else if(response.result==='timeout') {
             homebridge.toast.warn('Sniffing timed out');
@@ -92,7 +95,7 @@ function App() {
     else {
     }
 
-  }, [pluginConfig, sniffing, waitingForSniff])
+  }, [pluginConfig, sniffingRoom, sniffingRemote, waitingForSniff])
 
   const removeRoom = (i)=>{
     const update = JSON.parse(JSON.stringify(pluginConfig));
@@ -170,9 +173,12 @@ function App() {
                   id={`remote-ID-${i}-${j}`} 
                   value={remote}
                   onChange={e=>updateRemote(i, j, e.target.value)}
-                  canSniff={hasSniffingParams && sniffing<0} 
-                  onSniff={()=>setSniffing(i)}
-                  sniffing={sniffing===i}
+                  canSniff={hasSniffingParams && sniffingRoom<0} 
+                  onSniff={()=>{
+                    setSniffingRoom(i);
+                    setSniffingRemote(j);
+                  }}
+                  sniffing={sniffingRoom===i&&sniffingRemote===j}
                 />
               {removeButton}
             </div>
@@ -189,7 +195,7 @@ function App() {
         //             value={remote}
         //             onChange={e=>updateRemote(i, j, e.target.value)}
         //             canSniff={hasSniffingParams && sniffing<0} 
-        //             onSniff={()=>setSniffing(i)}
+        //             onSniff={()=>setSniffingRoom(i)}
         //             sniffing={sniffing===i}
         //           />
         //           <p className="help-block">
@@ -256,7 +262,7 @@ function App() {
     //             value={v.remote_id}
     //             onChange={e=>updateRemote(i,'remote_id',e.target.value)}
     //             canSniff={hasSniffingParams && sniffing<0} 
-    //             onSniff={()=>setSniffing(i)}
+    //             onSniff={()=>setSniffingRoom(i)}
     //             sniffing={sniffing===i}
     //           />
     //           <p className="help-block">
