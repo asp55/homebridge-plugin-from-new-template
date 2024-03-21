@@ -39,7 +39,7 @@ interface accessoryUpdateDebouncer {
  */
 export class CeilingFanRemote extends EventEmitter {
   private name: string;
-  private remoteID: string;
+  private serial: string;
   private lightService: Service;
   private fanService: Service;
 
@@ -62,13 +62,13 @@ export class CeilingFanRemote extends EventEmitter {
     
     this.platform.log.debug('Constructing ceiling fan remote with context:', this.accessory.context);
     this.name = this.accessory.context.config.name;
-    this.remoteID = this.accessory.context.config.remote_id;
+    this.serial = this.accessory.context.config._id;
 
     // set accessory information
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Andrew Parnell')
       .setCharacteristic(this.platform.Characteristic.Model, 'Ceiling fan controls')
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, this.remoteID);
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, this.serial);
 
     // INITIALIZE LIGHTBULB SERVICE
     (()=>{
@@ -88,7 +88,8 @@ export class CeilingFanRemote extends EventEmitter {
 
       // register handlers for the Brightness Characteristic
       this.lightService.getCharacteristic(this.platform.Characteristic.Brightness)
-        .onSet(this.setLightBrightness.bind(this));       // SET - bind to the 'setLightBrightness` method below
+        .onSet(this.setLightBrightness.bind(this))       // SET - bind to the 'setLightBrightness` method below
+        .onGet(this.getLightBrightness.bind(this));       // SET - bind to the 'getLightBrightness` method below
 
     })();
 
@@ -115,7 +116,9 @@ export class CeilingFanRemote extends EventEmitter {
 
     //Initialize the state from context
     if(this.accessory.context.state) {
-      this.accessoryState = this.accessory.context.state;
+      const updatedState = {...this.accessory.context.state, ...this.accessoryState};
+      this.accessoryState = {...updatedState};
+      
 
       const state = this.accessoryState;
 
@@ -135,7 +138,7 @@ export class CeilingFanRemote extends EventEmitter {
   private updateState(update:accessoryStateUpdate, afterUpdate:optionalCallback = null) {
     Object.keys(update).forEach(key=>{
       this.accessoryState[key] = update[key];
-      this.emit('update', {remote:this.accessory.context.config.remote_id, parameter:key, value:update[key]});
+      this.emit('update', {remote:this.accessory.context.config.remote_ids[0], parameter:key, value:update[key]});
 
       if(this.updateDebouncers[key]) {
         clearTimeout(this.updateDebouncers[key]);

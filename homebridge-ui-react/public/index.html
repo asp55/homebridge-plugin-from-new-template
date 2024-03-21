@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Web site created using create-react-app"
+    />
+    <!--
+      Notice the use of %PUBLIC_URL% in the tags above.
+      It will be replaced with the URL of the `public` folder during the build.
+      Only files inside the `public` folder can be referenced from the HTML.
+
+      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
+      work correctly both with client-side routing and a non-root public URL.
+      Learn how to configure a non-root public URL by running `npm run build`.
+    -->
+    <title>React App</title>
+    <script>
+    window.homebridge = {
+  updatePluginConfig: (v)=>{
+    console.log("updatePluginConfig", v);
+  },
+  showSpinner: () => {
+    console.log("Show Spinner")
+  },
+  hideSpinner: () => {
+    console.log("Hide Spinner")
+  },
+  getPluginConfig: async () => {
+    return [
+      {
+        "mqtt": {
+          "host": "homebridge.local",
+          "port": "1883",
+          "user": "mqtt_user",
+          "password": "tracking",
+          "protocol": "mqtt"
+        },
+        "rfbridge": {
+          "topic": "tasmota_EF54CC",
+          "protocol": "00"
+        },
+        "rooms": [{
+            "_id": 1710487022139,
+            "name": "Bedroom-Ceiling-TEST",
+            "remote_ids": ["0010101110101001001111001110001110111101"],
+          },
+          {
+            "_id": 1710487022140,
+            "name": "Office-Ceiling-TEST",
+            "remote_ids": ["0100000111101011010010110100010100110101"]
+          }
+        ],
+        "platform": "HomebridgeMQTTCeilingFanRemote"
+      }
+    ]
+  },
+  getPluginConfigSchema: async () => {
+    return {
+      "pluginAlias": "HomebridgeMQTTCeilingFanRemote",
+      "pluginType": "platform",
+      "singular": true,
+      "customUi": true,
+      "schema": {
+        "type": "object",
+        "properties": {
+          "_version": {
+            "type": "string",
+            "condition": {
+              "functionBody": "return false"
+            },
+            "default": "0.2.0"
+          },
+          "mqtt": {
+            "type": "object",
+            "title": "MQTT",
+            "properties": {
+              "protocol": {
+                "title": "Protocol",
+                "type": "string",
+                "oneOf": [
+                  { "title": "mqtt", "enum": ["mqtt"] },
+                  { "title": "mqtts", "enum": ["mqtts"] },
+                  { "title": "tcp", "enum": ["tcp"] },
+                  { "title": "tls", "enum": ["tls"] },
+                  { "title": "ws", "enum": ["ws"] },
+                  { "title": "wss", "enum": ["wss"] },
+                  { "title": "wxs", "enum": ["wxs"] },
+                  { "title": "alis", "enum": ["alis"] }
+                ],
+                "default": "mqtt",
+                "required": true
+              },
+              "host": {
+                "title": "Broker",
+                "type": "string",
+                "default": "0.0.0.0",
+                "required": true
+              },
+              "port": {
+                "title": "Port",
+                "type": "string",
+                "default": "1883",
+                "required": true
+              },
+              "user": {
+                "title": "Username",
+                "type": "string"
+              },
+              "password": {
+                "title": "Password",
+                "type": "string"
+              }
+            }
+          },
+          "rfbridge": {
+            "type": "object",
+            "title": "RF Bridge",
+            "properties": {
+              "topic": {
+                "title": "Topic",
+                "type":"string",
+                "required": true
+              },
+              "protocol": {
+                "title": "Protocol Index",
+                "type":"string",
+                "required": true,
+                "default": "00"
+              }
+            }
+          },
+          "rooms": {
+            "title": "Rooms",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "_id": {
+                  "type": "string",
+                  "condition": {
+                    "functionBody": "return false"
+                  }
+                },
+                "name": {
+                  "title": "Name",
+                  "type": "string",
+                  "required": true
+                },
+                "remote_ids":{
+                  "title": "Remotes",
+                  "description": "Homekit inputs will be sent from the first remote code",
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "title": "Remote Code",
+                    "description": "Binary string of nibble 1-40 of remote payload. <br/>Example: 0010101110101001001111001110001110111101",
+                    "type": "string",
+                    "required": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "displayName": "MQTT Ceiling Fan Remote"
+    }
+  },
+  toast: {
+    success: (message, title='')=>{
+      console.log('Toast Success Message', message, title);
+    },
+    error: (message, title='')=>{
+      console.log('Toast Error Message', message, title);
+    },
+    warning: (message, title='')=>{
+      console.log('Toast Warning Message', message, title);
+    },
+    info: (message, title='')=>{
+      console.log('Toast Info Message', message, title);
+    },
+  },
+  request: async (path, body='')=>new Promise((resolve)=>{
+    setTimeout(()=>resolve({result: "success", data: "0010101110101001001111001110001110111101"}), 1500)
+  })
+}
+    </script>
+    <link href="http://localhost:8581/styles.3422f0a086a2d157.css" rel="stylesheet">
+    <style>@charset "UTF-8";:root{--fa-style-family-classic:"Font Awesome 6 Free";--fa-font-solid:normal 900 1em/1 "Font Awesome 6 Free"}@font-face{font-family:"Font Awesome 6 Free";font-style:normal;font-weight:900;font-display:block;src:url(fa-solid-900.ce4938a30389d90a.woff2) format("woff2"),url(fa-solid-900.081655f2111aa667.ttf) format("truetype")}:root{--fa-style-family-classic:"Font Awesome 6 Free";--fa-font-regular:normal 400 1em/1 "Font Awesome 6 Free"}@font-face{font-family:"Font Awesome 6 Free";font-style:normal;font-weight:400;font-display:block;src:url(fa-regular-400.f386b6b7c6bf65a5.woff2) format("woff2"),url(fa-regular-400.a937b755f79cb30d.ttf) format("truetype")}:root{--fa-style-family-brands:"Font Awesome 6 Brands";--fa-font-brands:normal 400 1em/1 "Font Awesome 6 Brands"}@font-face{font-family:"Font Awesome 6 Brands";font-style:normal;font-weight:400;font-display:block;src:url(fa-brands-400.e465758e13df1d72.woff2) format("woff2"),url(fa-brands-400.8bf6ccf0176a7567.ttf) format("truetype")}:root{--blue:#007bff;--indigo:#6610f2;--purple:#6f42c1;--pink:#e83e8c;--red:#dc3545;--orange:#fd7e14;--yellow:#ffc107;--green:#28a745;--teal:#20c997;--cyan:#17a2b8;--white:#fff;--gray:#6c757d;--gray-dark:#343a40;--primary:#007bff;--secondary:#6c757d;--success:#28a745;--info:#17a2b8;--warning:#ffc107;--danger:#dc3545;--light:#f8f9fa;--dark:#343a40;--breakpoint-xs:0;--breakpoint-sm:576px;--breakpoint-md:768px;--breakpoint-lg:992px;--breakpoint-xl:1200px;--font-family-sans-serif:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";--font-family-monospace:SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}*,*:before,*:after{box-sizing:border-box}html{font-family:sans-serif;line-height:1.15;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:rgba(0,0,0,0)}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,Noto Sans,Liberation Sans,sans-serif,"Apple Color Emoji","Segoe UI Emoji",Segoe UI Symbol,"Noto Color Emoji";font-size:1rem;font-weight:400;line-height:1.5;color:#212529;text-align:left;background-color:#fff}@media print{*,*:before,*:after{text-shadow:none!important;box-shadow:none!important}@page{size:a3}body{min-width:992px!important}}body{font-family:Roboto,sans-serif;font-weight:300}html,body{height:100%;-webkit-font-smoothing:subpixel-antialiased}body{background-color:#f4f4f4}.body-top-padding{padding-top:5.5rem}</style>
+    <style>/* Chart.js */@-webkit-keyframes chartjs-render-animation{from{opacity:0.99}to{opacity:1}}@keyframes chartjs-render-animation{from{opacity:0.99}to{opacity:1}}.chartjs-render-monitor{-webkit-animation:chartjs-render-animation 0.001s;animation:chartjs-render-animation 0.001s;}</style>
+    <style>.login-container[_ngcontent-omd-c12]{background-color:#f4f4f4;background-size:cover;position:absolute;top:0;bottom:0;right:0;left:0}.login-card[_ngcontent-omd-c12]{max-width:500px;background-color:#ffffffe6}.login-card[_ngcontent-omd-c12]   .form-control[_ngcontent-omd-c12]:focus{background-color:inherit!important}@media screen and (min-height: 800px){.login-card[_ngcontent-omd-c12]{margin-bottom:12em}}.login-logo[_ngcontent-omd-c12]{position:absolute;top:-35%;z-index:2000;max-width:450px}@media screen and (max-width: 450px){.login-logo[_ngcontent-omd-c12]{max-width:320px;top:-25%}}@media screen and (max-width: 320px){.login-logo[_ngcontent-omd-c12]{max-width:280px}}@media screen and (max-height: 450px){.login-logo[_ngcontent-omd-c12]{display:none}}</style>
+    <style>.menu-logo[_ngcontent-omd-c126]{margin-right:10px;height:37px}@media screen and (max-width: 600px){.menu-logo[_ngcontent-omd-c126]{height:27px}}@media screen and (max-width: 991px){.menu-logo[_ngcontent-omd-c126]{height:32px}}@media screen and (max-width: 991px){.hb-nav-right[_ngcontent-omd-c126]{float:right}.hb-nav-right[_ngcontent-omd-c126]   li[_ngcontent-omd-c126]{margin-left:20px}}.nav-menu-icon[_ngcontent-omd-c126]{font-size:20px}.navbar[_ngcontent-omd-c126]   .dropdown-menu[_ngcontent-omd-c126]{margin-top:15px!important}@media screen and (max-width: 600px){.dropdown-menu[_ngcontent-omd-c126]{position:fixed!important;top:50px;max-width:70%}}a[_ngcontent-omd-c126]:hover{text-decoration:none!important}</style>
+    <style>.hb-npm-search[_ngcontent-omd-c130]{outline:none;box-sizing:inherit!important;background-color:inherit;height:50px!important;width:100%;border-width:.5px;padding:10px;margin-bottom:15px}@media (hover: hover){.hb-npm-search[_ngcontent-omd-c130]:hover{border:1px solid #000000}}.hb-npm-search[_ngcontent-omd-c130]:focus{border:1px solid #000000;box-shadow:0 1px #000}.hb-npm-search-clear[_ngcontent-omd-c130]{position:absolute;right:25px;font-size:35px;color:#d0d0d0;line-height:50px;cursor:pointer}.hb-plugin-space-between[_ngcontent-omd-c130]{box-sizing:border-box;width:calc(50% - 6.6666666667px)}@media only screen and (max-width: 991px){.hb-plugin-space-between[_ngcontent-omd-c130]{width:100%}}</style>
+    <style>.app-spinner-container[_ngcontent-omd-c20]{position:absolute;top:0;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:center;z-index:1000}.animate_loader[_ngcontent-omd-c20]   svg[_ngcontent-omd-c20]{position:absolute;top:0;right:0;bottom:0;left:0;margin:auto;width:200px;overflow:visible}</style>
+    <style>.dropdown-menu.show[_ngcontent-omd-c129]{margin-top:10px;margin-bottom:10px}.dropup[_ngcontent-omd-c129]   .dropdown-toggle[_ngcontent-omd-c129]:after{display:none}</style>
+    <style>.manage-plugin-config-external-icons[_ngcontent-omd-c113]{font-size:1.5rem;font-weight:700;line-height:1;color:#000;opacity:.5;background-color:transparent;border:0}.loading-overlay[_ngcontent-omd-c113]{position:absolute;top:16px;left:16px;right:16px;bottom:16px;background-color:#ffffffb3}  body.dark-mode .loading-overlay{background-color:#242424b3}.custom-form-action-buttons[_ngcontent-omd-c113]   button[_ngcontent-omd-c113]:last-child{margin-right:2px}</style>
+    <style>ngb-modal-window .component-host-scrollable{display:flex;flex-direction:column;overflow:hidden}</style>
+    <style>
+      body {
+        height: unset !important;
+        background-color: #FFFFFF !important;
+        color: #000000;
+        padding: 5px !important;
+      }
+    </style>
+  </head>
+  <body style="display: block;" class="config-ui-x-purple">
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <!--
+      This HTML file is a template.
+      If you open it directly in the browser, you will see an empty page.
+
+      You can add webfonts, meta tags, or analytics to this file.
+      The build step will place the bundled scripts into the <body> tag.
+
+      To begin the development, run `npm start` or `yarn start`.
+      To create a production bundle, use `npm run build` or `yarn build`.
+    -->
+  </body>
+</html>

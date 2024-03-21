@@ -26,6 +26,7 @@
     "homebridge-plugin"
   ],
   "dependencies": {
+    "@homebridge/plugin-ui-utils": "^1.0.1",
     "mqtt": "^5.4.0"
   },
   "devDependencies": {
