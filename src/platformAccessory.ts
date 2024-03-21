@@ -62,7 +62,7 @@ export class CeilingFanRemote extends EventEmitter {
     
     this.platform.log.debug('Constructing ceiling fan remote with context:', this.accessory.context);
     this.name = this.accessory.context.config.name;
-    this.serial = this.accessory.context.config._id;
+    this.serial = this.accessory.context.config._id.toString();
 
     // set accessory information
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
