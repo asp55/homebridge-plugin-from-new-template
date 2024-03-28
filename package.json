@@ -1,7 +1,7 @@
 {
   "displayName": "MQTT Ceiling Fan Remote",
   "name": "homebridge-mqtt-ceiling-fan-remote",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A remote using http commands to control a hunter ceiling fan via a tasmotized sonoff rfbridge for homebridge written in Typescript",
   "license": "Apache-2.0",
   "repository": {
@@ -23,7 +23,16 @@
     "prepublishOnly": "npm run lint && npm run build"
   },
   "keywords": [
-    "homebridge-plugin", "hunter", "ceiling", "fan", "remote", "mqtt", "tasmotized", "tasmota", "sonoff", "rfbridge"
+    "homebridge-plugin",
+    "hunter",
+    "ceiling",
+    "fan",
+    "remote",
+    "mqtt",
+    "tasmotized",
+    "tasmota",
+    "sonoff",
+    "rfbridge"
   ],
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^1.0.1",
