@@ -23,7 +23,7 @@
     "prepublishOnly": "npm run lint && npm run build"
   },
   "keywords": [
-    "homebridge-plugin"
+    "homebridge-plugin", "hunter", "ceiling", "fan", "remote", "mqtt", "tasmotized", "tasmota", "sonoff", "rfbridge"
   ],
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^1.0.1",
