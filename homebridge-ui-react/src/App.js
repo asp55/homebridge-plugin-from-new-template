@@ -64,7 +64,8 @@ function App() {
       })
       initialSchema.rooms = updatedRooms;
       
-      initialSchema._version = "0.2.0";
+
+      initialSchema._version = "1.0.0";
       setPluginConfig(initialSchema);
       setInitialized(true)
       homebridge.hideSpinner();
@@ -189,6 +190,11 @@ function App() {
     update.rfbridge[key] = value;
     setPluginConfig(update);
   }
+  const updateNames = (value)=>{
+    const update = JSON.parse(JSON.stringify(pluginConfig));
+    update.name = value;
+    setPluginConfig(update);
+  }
 
   if(!initialized) {
     return (<div>Initializing</div>);
@@ -278,10 +284,6 @@ function App() {
                           {remotes}
                           {provided.placeholder}
                         </div>
-                        // <div className={dragging>=0 ? "dragging" : "not-dragging"} ref={provided.innerRef} {...provided.droppableProps}>
-                        //   <ColumnsList tableWidth={tableWidth} dragging={dragging} columns={columnDetails} onUpdate={onColumnUpdate} onSubmit={onSubmit} onDelete={onColumnDelete}/>
-                        //   {provided.placeholder}
-                        // </div>
                       )}
                     </Droppable>
                   </DragDropContext>
@@ -298,33 +300,6 @@ function App() {
 
     }) 
     : '';
-    // const remotes = pluginConfig.remotes.map((v,i)=>{
-    //   return (<div key={`remote-${i}`}>
-    //     <div className="list-group-item mb-3">
-    //       <button type="button" id={`remove-remote-${i}`} className="close pull-right" onClick={()=>removeRemote(i)}>
-    //         <span aria-hidden="true">×</span><span className="sr-only">Remove</span>
-    //       </button>
-    //       <div className="form-group">
-    //           <label className="control-label" htmlFor={`remote-NAME-${i}`}>Name <strong className="text-danger">*</strong></label>
-    //           <input className="form-control" id={`remote-NAME-${i}`} name="name" type="text" required={true} value={v.name} onChange={e=>updateRemote(i,'name',e.target.value)}/>
-    //       </div>
-    //       <div className="form-group">
-    //           <label className="control-label" htmlFor={`remote-ID-${i}`}>Remote ID <strong className="text-danger">*</strong></label>
-    //           <RemoteIDField 
-    //             id={`remote-ID-${i}`} 
-    //             value={v.remote_id}
-    //             onChange={e=>updateRemote(i,'remote_id',e.target.value)}
-    //             canSniff={hasSniffingParams && sniffing<0} 
-    //             onSniff={()=>setSniffingRoom(i)}
-    //             sniffing={sniffing===i}
-    //           />
-    //           <p className="help-block">
-    //             Binary string of nibble 1-40 of remote payload. <br/> Example: 0010101110101001001111001110001110111101
-    //           </p>
-    //       </div>
-    //     </div>
-    //   </div>);
-    // });
 
     return (
     <form id="configForm" autoComplete="off">
@@ -383,6 +358,13 @@ function App() {
             </div>
           </fieldset>
         </div>
+      </div>
+      <div className="card card-body mb-4">
+          <label style={{fontSize:"1.5rem"}}>Other Settings</label>
+          <div className="form-group">
+              <label className="control-label" htmlFor="pluginName">Plugin Name</label>
+              <input className="form-control" id="pluginName" name="topic" type="text" value={pluginConfig.name} onChange={e=>updateNames(e.target.value)} />
+          </div>
       </div>
     </form>
     );
