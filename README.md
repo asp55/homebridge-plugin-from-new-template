@@ -1,6 +1,6 @@
 # homebridge-mqtt-ceiling-fan-remote
 
-[![npm](https://img.shields.io/npm/v/homebridge-mqtt-ceiling-fan-remote) ![npm](https://img.shields.io/npm/dt/homebridge-mqtt-ceiling-fan-remote)](https://www.npmjs.com/package/homebridge-mqtt-ceiling-fan-remote)
+[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins) [![npm](https://img.shields.io/npm/v/homebridge-mqtt-ceiling-fan-remote) ![npm](https://img.shields.io/npm/dt/homebridge-mqtt-ceiling-fan-remote)](https://www.npmjs.com/package/homebridge-mqtt-ceiling-fan-remote)
 
 [Homebridge](https://github.com/homebridge/homebridge) Support for wireless control of Hunter ceiling fans via a [Tasmotized](https://github.com/arendst/Tasmota) Sonoff [RF Bridge](https://sonoff.tech/product/gateway-and-sensors/rf-bridger2/) with [Portisch firmware](https://github.com/Portisch/RF-Bridge-EFM8BB1)
 
