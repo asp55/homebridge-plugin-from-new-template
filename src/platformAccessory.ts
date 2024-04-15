@@ -66,6 +66,7 @@ export class CeilingFanRemote extends EventEmitter {
 
     // set accessory information
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
+      .setCharacteristic(this.platform.Characteristic.Name, this.name)
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Andrew Parnell')
       .setCharacteristic(this.platform.Characteristic.Model, 'Ceiling fan controls')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.serial);

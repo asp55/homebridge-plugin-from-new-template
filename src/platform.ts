@@ -189,7 +189,14 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
               // the accessory already exists
               const existingAccessory = this.accessories.splice(existingAccessoryIndex, 1)[0];
     
-              this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
+              //Check if the display name has been updated
+              if(roomConfig.name === existingAccessory.displayName) {
+                this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
+              }
+              else {
+                this.log.info(`Restoring existing accessory from cache: ${roomConfig.name} (formerly ${existingAccessory.displayName})`);
+                existingAccessory.displayName = roomConfig.name;
+              }
     
               // Update the context to make sure the current settings are in the context
               existingAccessory.context.config = roomConfig;
