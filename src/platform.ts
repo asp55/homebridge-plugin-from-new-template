@@ -196,6 +196,7 @@ export class CeilingFanRemotePlatform implements DynamicPlatformPlugin {
               else {
                 this.log.info(`Restoring existing accessory from cache: ${roomConfig.name} (formerly ${existingAccessory.displayName})`);
                 existingAccessory.displayName = roomConfig.name;
+                existingAccessory._associatedHAPAccessory.displayName = roomConfig.name;
               }
     
               // Update the context to make sure the current settings are in the context
